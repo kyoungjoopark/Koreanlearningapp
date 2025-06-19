@@ -13,21 +13,22 @@ export default function Header() {
   const router = useRouter()
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser()
-      setUser(data.user)
-    }
-    
-    getUser()
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUser(user);
+    };
+
+    fetchUser();
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null)
-    })
+      // 이벤트가 발생하면 (로그인, 로그아웃 등) 서버로부터 사용자 정보를 다시 가져옵니다.
+      fetchUser();
+    });
 
     return () => {
-      authListener.subscription.unsubscribe()
-    }
-  }, [supabase])
+      authListener?.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
