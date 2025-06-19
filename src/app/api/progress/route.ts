@@ -58,13 +58,23 @@ export async function GET() {
       .in('id', lessonIds);
 
     if (lessonError) throw lessonError;
+    if (!lessonData) {
+      return NextResponse.json([]);
+    }
 
     // 3. 두 데이터를 합쳐서 프론트엔드로 보냅니다.
     const progressMap = new Map(progressData.map(p => [p.lesson_id, p.completed_at]));
-    const combinedData = lessonData.map(lesson => ({
+    const combinedData = lessonData
+      .filter(lesson => lesson)
+      .map((lesson: any) => ({
         ...lesson,
         completed_at: progressMap.get(lesson.id)
-    })).sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
+      }))
+      .sort((a, b) => {
+        const dateA = a.completed_at ? new Date(a.completed_at).getTime() : 0;
+        const dateB = b.completed_at ? new Date(b.completed_at).getTime() : 0;
+        return dateB - dateA;
+      });
 
     return NextResponse.json(combinedData);
 
