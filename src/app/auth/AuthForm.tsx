@@ -39,7 +39,6 @@ export default function AuthForm() {
       try {
         const { user } = await signIn({ email, password })
         setSuccess('로그인 성공! 페이지를 이동합니다...')
-        router.refresh()
         
         const next = searchParams.get('next')
 
