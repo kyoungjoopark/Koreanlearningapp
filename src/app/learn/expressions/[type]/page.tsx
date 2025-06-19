@@ -3,9 +3,6 @@
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Book, Feather, ChevronRight } from 'lucide-react'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
-import IdiomsClientPage from './[level]/IdiomsClientPage'
 
 const idiomLevels = [
   { name: '초급', description: '기초적인 관용구를 배워보세요.' },
