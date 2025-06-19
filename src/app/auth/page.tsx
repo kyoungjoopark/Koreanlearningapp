@@ -7,6 +7,8 @@ import { signIn, signUp } from '@/lib/auth'
 import Image from 'next/image'
 import boyGirlImage from '@/assets/boy_girl.png' // 이미지를 직접 import 합니다.
 
+export const dynamic = 'force-dynamic'
+
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
