@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 학습 활동 생성 테스트</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f4f4f9; color: #333; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        textarea, input[type="text"], select { width: calc(100% - 22px); padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box; }
+        button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        pre { background-color: #eee; padding: 15px; border-radius: 4px; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; }
+        .hidden { display: none; }
+        .loading { text-align: center; font-style: italic; }
+        .error { color: red; font-weight: bold; }
+        .form-group { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI 학습 활동 생성 테스트</h1>
+
+        <div class="form-group">
+            <label for="word">단어:</label>
+            <input type="text" id="word" value="달다">
+        </div>
+
+        <div class="form-group">
+            <label for="meanings">의미 정보 (JSON 배열 형식 - wordData.meanings에 해당):</label>
+            <textarea id="meanings" rows="10">[
+    {
+        "partOfSpeech": "형용사",
+        "level": "A1",
+        "koreanDefinition": "꿀이나 설탕의 맛과 같다.",
+        "exampleSentence": "이 사탕은 아주 달다."
+    },
+    {
+        "partOfSpeech": "동사",
+        "level": "A1",
+        "koreanDefinition": "물건을 어떤 곳에 걸거나 매달다.",
+        "exampleSentence": "벽에 그림을 달았다."
+    }
+]</textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="activityType">활동 유형:</label>
+            <select id="activityType" onchange="toggleTargetSentences()">
+                <option value="sentence_creation">문장 생성 (sentence_creation)</option>
+                <option value="fill_in_the_blank">빈칸 채우기 (fill_in_the_blank)</option>
+            </select>
+        </div>
+
+        <div class="form-group hidden" id="targetSentencesGroup">
+            <label for="targetSentences">대상 문장 목록 (JSON 배열 형식 - fill_in_the_blank 시 필요):</label>
+            <textarea id="targetSentences" rows="8">[
+    {
+        "meaning_id": "의미 1", 
+        "korean": "이 사탕은 아주 달다.",
+        "english": "This candy is very sweet."
+    },
+    {
+        "meaning_id": "의미 2",
+        "korean": "벽에 그림을 달았다.",
+        "english": "I hung a picture on the wall."
+    }
+]</textarea>
+        </div>
+
+        <div class="form-group" id="forbiddenWordsGroup">
+            <label for="forbiddenWords">금지어 (쉼표로 구분, 없으면 비워두기 - sentence_creation 시 주로 사용):</label>
+            <input type="text" id="forbiddenWords" value="사과,단추">
+        </div>
+
+        <button onclick="generateActivity()">학습 활동 생성</button>
+
+        <div id="loading" class="loading hidden">요청 중...</div>
+        <div id="error" class="error hidden"></div>
+        <h2>API 응답:</h2>
+        <pre id="responseOutput">여기에 API 응답이 표시됩니다.</pre>
+    </div>
+
+    <script>
+        function toggleTargetSentences() {
+            const activityType = document.getElementById('activityType').value;
+            const targetSentencesGroup = document.getElementById('targetSentencesGroup');
+            const forbiddenWordsGroup = document.getElementById('forbiddenWordsGroup');
+
+            if (activityType === 'fill_in_the_blank') {
+                targetSentencesGroup.classList.remove('hidden');
+                // 빈칸 채우기 시 금지어는 직접적으로 사용되지 않으므로 숨길 수 있지만, 일단 유지
+                // forbiddenWordsGroup.classList.add('hidden'); 
+            } else {
+                targetSentencesGroup.classList.add('hidden');
+                // forbiddenWordsGroup.classList.remove('hidden');
+            }
+        }
+
+        async function generateActivity() {
+            const word = document.getElementById('word').value;
+            const meaningsInput = document.getElementById('meanings').value;
+            const forbiddenWordsInput = document.getElementById('forbiddenWords').value;
+            const activityType = document.getElementById('activityType').value;
+            const targetSentencesInput = document.getElementById('targetSentences').value;
+
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+            const responseOutput = document.getElementById('responseOutput');
+
+            loadingDiv.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            responseOutput.textContent = '요청 중...';
+
+            let meaningsParsed;
+            try {
+                meaningsParsed = JSON.parse(meaningsInput);
+                if (!Array.isArray(meaningsParsed)) {
+                    // 이전에는 .meanings를 접근했으나, 이제 textarea 입력 자체가 배열이 되도록 유도
+                    throw new Error("의미 정보는 JSON 배열 형식이어야 합니다.");
+                }
+            } catch (e) {
+                errorDiv.textContent = '의미 정보 JSON 형식이 올바르지 않습니다: ' + e.message;
+                errorDiv.classList.remove('hidden');
+                loadingDiv.classList.add('hidden');
+                responseOutput.textContent = '';
+                return;
+            }
+
+            const wordData = {
+                word: word,
+                meanings: meaningsParsed,
+                forbiddenWords: forbiddenWordsInput ? forbiddenWordsInput.split(',').map(s => s.trim()) : []
+            };
+
+            let requestBody = {
+                wordData: wordData,
+                activityType: activityType
+            };
+
+            if (activityType === 'fill_in_the_blank') {
+                let targetSentencesParsed;
+                try {
+                    targetSentencesParsed = JSON.parse(targetSentencesInput);
+                    if (!Array.isArray(targetSentencesParsed)) {
+                        throw new Error("대상 문장 목록은 JSON 배열 형식이어야 합니다.");
+                    }
+                    requestBody.targetSentences = targetSentencesParsed;
+                } catch (e) {
+                    errorDiv.textContent = '대상 문장 목록 JSON 형식이 올바르지 않습니다: ' + e.message;
+                    errorDiv.classList.remove('hidden');
+                    loadingDiv.classList.add('hidden');
+                    responseOutput.textContent = '';
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch('/api/generate-activity', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                loadingDiv.classList.add('hidden');
+                const responseData = await response.json();
+
+                if (!response.ok) {
+                    // API가 JSON 형식의 오류를 반환한다고 가정
+                    const errorMsg = responseData.error || responseData.details || `HTTP error! status: ${response.status}`;
+                    throw new Error(errorMsg);
+                }
+                
+                responseOutput.textContent = JSON.stringify(responseData, null, 2);
+
+            } catch (err) {
+                loadingDiv.classList.add('hidden');
+                errorDiv.textContent = 'API 요청 실패: ' + err.message;
+                errorDiv.classList.remove('hidden');
+                responseOutput.textContent = '';
+                console.error('API 요청 오류:', err);
+            }
+        }
+        // 페이지 로드 시 초기 상태 설정
+        document.addEventListener('DOMContentLoaded', toggleTargetSentences);
+    </script>
+</body>
+</html> 

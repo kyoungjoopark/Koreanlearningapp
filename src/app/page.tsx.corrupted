@@ -1,0 +1,41 @@
+export default function HomePage() {
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center">
+      <div className="max-w-4xl mx-auto px-4 py-8 text-center">
+        <h1 className="text-5xl font-bold text-blue-800 mb-8">
+          🎉 Korean Learning App
+        </h1>
+        <p className="text-xl text-blue-600 mb-8">
+          Server is running successfully!
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <div className="text-4xl mb-4">💬</div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Korean Q&A</h2>
+            <p className="text-gray-600">Chat with AI teacher to resolve your questions in real time</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <div className="text-4xl mb-4">📝</div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Korean Practice</h2>
+            <p className="text-gray-600">Improve your skills with listening, speaking, conversation completion, and translation practice</p>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow-lg">
+            <div className="text-4xl mb-4">📚</div>
+            <h2 className="text-xl font-semibold text-gray-800 mb-2">Word Learning</h2>
+            <p className="text-gray-600">Systematically expand your vocabulary with level-based word cards</p>
+          </div>
+        </div>
+
+        <div className="mt-12 p-6 bg-green-100 rounded-lg">
+          <h3 className="text-lg font-semibold text-green-800 mb-2">✅ Test Success</h3>
+          <p className="text-green-700">
+            Next.js server is running normally and the page is rendering correctly.
+          </p>
+        </div>
+      </div>
+    </main>
+  )
+} 
