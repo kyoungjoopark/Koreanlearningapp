@@ -24,6 +24,17 @@ interface IdiomsClientPageProps {
 export default function IdiomsClientPage({ idioms, level }: IdiomsClientPageProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  if (!idioms || idioms.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <p>'{level}' 레벨에 해당하는 관용구를 찾을 수 없습니다.</p>
+        <Link href="/learn/idioms" className="mt-4 text-blue-600 hover:underline">
+          레벨 선택으로 돌아가기
+        </Link>
+      </div>
+    );
+  }
+
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % idioms.length);
   };
@@ -62,13 +73,15 @@ export default function IdiomsClientPage({ idioms, level }: IdiomsClientPageProp
               </div>
 
               {/* 예문 */}
-              <div>
-                <h3 className="text-xl font-bold text-korean-700 mb-3">예문:</h3>
-                <div className="p-6 border border-gray-200 rounded-lg space-y-4 whitespace-pre-wrap bg-gray-50">
-                  <p className="text-gray-800">{currentIdiom.example_sentence}</p>
-                  <p className="text-gray-600 text-sm">{currentIdiom.example_sentence_en}</p>
+              {currentIdiom.example_sentence && (
+                <div>
+                  <h3 className="text-xl font-bold text-korean-700 mb-3">예문:</h3>
+                  <div className="p-6 border border-gray-200 rounded-lg space-y-4 whitespace-pre-wrap bg-gray-50">
+                    <p className="text-gray-800">{currentIdiom.example_sentence}</p>
+                    <p className="text-gray-600 text-sm">{currentIdiom.example_sentence_en}</p>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* 상세 설명 */}
               {currentIdiom.explanation && (
