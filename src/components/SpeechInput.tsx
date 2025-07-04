@@ -102,9 +102,9 @@ const SpeechInput: React.FC<SpeechInputProps> = ({ onTranscript, isSubmitting })
         disabled={!recognitionRef.current || isSubmitting}
         className={`p-2 rounded-full transition-all duration-200 relative ${
           isListening
-            ? 'bg-red-500 text-white shadow-lg transform scale-110'
+            ? 'bg-blue-600 text-white shadow-lg transform scale-105'
             : 'bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md'
-        } disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed`}
+        } disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed`}
         title={isListening ? 
           "녹음 중지 (Click to stop recording)" : 
           "음성으로 질문하기 (Click to speak your question)"
@@ -114,24 +114,22 @@ const SpeechInput: React.FC<SpeechInputProps> = ({ onTranscript, isSubmitting })
           <>
             <Square className="w-3 h-3" fill="currentColor" />
             {/* 녹음 중 애니메이션 */}
-            <div className="absolute inset-0 rounded-full bg-red-400 animate-ping opacity-30"></div>
+            <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-30"></div>
           </>
         ) : (
-          <Mic className="w-5 h-5" />
+          <Mic className="w-4 h-4" />
         )}
       </button>
       
       {/* 툴팁 */}
-      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
         {isListening ? (
-          <div>
+          <div className="text-center">
             <div className="font-medium">🔴 녹음 중...</div>
-            <div className="text-xs">🔴 Recording...</div>
           </div>
         ) : (
-          <div>
+          <div className="text-center">
             <div className="font-medium">🎤 음성으로 질문하기</div>
-            <div className="text-xs">🎤 Ask with your voice</div>
           </div>
         )}
       </div>

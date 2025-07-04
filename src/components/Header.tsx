@@ -46,14 +46,14 @@ export default function Header() {
         <div />
 
         {/* Centered Title */}
-        <div className="flex flex-col items-center text-center">
-          <Link href="/" className="text-xl font-bold text-gray-800 dark:text-white">
+        <div className="flex items-center justify-center gap-3 text-center">
+          <Link href="/" className="text-lg font-bold text-gray-800 dark:text-white whitespace-nowrap">
             Korean Learning App
           </Link>
           {user && (
             <button
               onClick={handleLogout}
-              className="px-3 py-1 bg-gray-200 text-xs font-semibold text-gray-700 rounded-md hover:bg-gray-300 transition-colors mt-1"
+              className="px-2 py-1 bg-gray-200 text-xs font-semibold text-gray-700 rounded hover:bg-gray-300 transition-colors"
             >
               Logout
             </button>

@@ -204,23 +204,23 @@ function KoreanQAContent() {
             <button
               onClick={saveConversationLog}
               disabled={messages.length <= 1}
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm"
+              className="px-3 py-1.5 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-xs"
             >
-              📄 로그 저장
+              📄 저장
             </button>
             <button
               onClick={clearMessages}
               disabled={messages.length <= 1}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm"
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-xs"
             >
-              🗑️ 대화 삭제
+              🗑️ 삭제
             </button>
           </div>
         </div>
       </div>
 
       {/* 대화 기록 */}
-      <div ref={scrollRef} className="bg-white rounded-lg shadow-lg mb-6 h-[55vh] overflow-y-auto p-4 border">
+      <div ref={scrollRef} className="bg-white rounded-lg shadow-lg mb-6 h-[45vh] overflow-y-auto p-4 border">
         {messages.length === 0 ? (
           <div className="text-center text-korean-500 mt-20">
             <div className="text-4xl mb-4">👋</div>
@@ -272,58 +272,58 @@ function KoreanQAContent() {
       <form onSubmit={handleSubmit} className="mt-6">
         <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden p-4">
           {/* 설명 텍스트 */}
-          <div className="mb-4 text-center">
-            <p className="text-korean-700 font-medium">
+          <div className="mb-3 text-center">
+            <p className="text-korean-700 font-medium text-sm">
               여기에 어느 언어로든 질문을 입력하거나 마이크 버튼을 누르세요
             </p>
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-500 text-xs mt-1">
               Type your question in any language or click the mic button
             </p>
           </div>
           
           {/* 입력창과 버튼 */}
-          <div className="flex items-center gap-3">
-            <SpeechInput onTranscript={setInput} isSubmitting={isLoading} />
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="질문을 입력하세요... / Enter your question..."
-              className="flex-grow px-4 py-3 bg-transparent focus:outline-none text-gray-800 disabled:bg-gray-100 resize-none border border-gray-200 rounded-lg focus:border-korean-500 focus:ring-2 focus:ring-korean-200 min-h-[80px]"
-              disabled={isLoading}
-              rows={3}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e as any);
-                }
-              }}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="bg-korean-600 text-white px-6 py-3 rounded-lg hover:bg-korean-700 focus:outline-none focus:ring-2 focus:ring-korean-500 focus:ring-offset-2 disabled:bg-korean-300 disabled:cursor-not-allowed transition-colors self-end min-h-[80px]"
-              title="질문 전송 / Send question"
-            >
-              <div className="flex flex-col items-center justify-center">
-                {isLoading ? (
-                  <>
-                    <span className="font-medium">전송 중...</span>
-                    <span className="text-xs opacity-80">Sending...</span>
-                  </>
-                ) : (
-                  <>
-                    <span className="font-medium">전송</span>
-                    <span className="text-xs opacity-80">Send</span>
-                  </>
-                )}
+          <div className="space-y-3">
+            {/* 마이크와 텍스트 입력 영역 */}
+            <div className="flex items-start gap-3">
+              <SpeechInput onTranscript={setInput} isSubmitting={isLoading} />
+              <div className="flex-grow">
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="질문을 입력하세요..."
+                  className="w-full px-3 py-2 bg-transparent focus:outline-none text-gray-800 disabled:bg-gray-100 resize-none border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 min-h-[40px] text-sm"
+                  disabled={isLoading}
+                  rows={2}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e as any);
+                    }
+                  }}
+                />
               </div>
-            </button>
-          </div>
-          
-          {/* 사용 팁 */}
-          <div className="mt-3 text-xs text-gray-500 text-center">
-            <span className="inline-block mr-4">💡 팁: Enter로 전송, Shift+Enter로 줄바꿈</span>
-            <span className="inline-block">💡 Tip: Enter to send, Shift+Enter for new line</span>
+              {/* 웹에서만 표시되는 전송 버튼 (옆에 배치) */}
+              <button
+                type="submit"
+                disabled={isLoading || !input.trim()}
+                className="hidden md:block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium self-start"
+                title="질문 전송"
+              >
+                {isLoading ? '전송 중...' : '전송'}
+              </button>
+            </div>
+            
+            {/* 모바일/앱에서만 표시되는 전송 버튼 (아래에 배치) */}
+            <div className="flex justify-end md:hidden">
+              <button
+                type="submit"
+                disabled={isLoading || !input.trim()}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                title="질문 전송"
+              >
+                {isLoading ? '전송 중...' : '전송'}
+              </button>
+            </div>
           </div>
         </div>
       </form>
