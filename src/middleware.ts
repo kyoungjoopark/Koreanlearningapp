@@ -63,9 +63,11 @@ export async function middleware(request: NextRequest) {
 
   // 시나리오 4: 로그인 사용자의 /auth 페이지 접근 시 리디렉션 (무한 루프 방지 로직 추가)
   if (session && pathname === '/auth') {
-    // 'session_expired' 이유로 방금 막 리디렉션된 것이 아니라면, courses로 보냅니다.
+    // 'session_expired' 이유로 방금 막 리디렉션된 것이 아니라면, 적절한 페이지로 리다이렉트
     if (searchParams.get('reason') !== 'session_expired') {
-      return NextResponse.redirect(new URL('/courses', request.url));
+      // 'next' 파라미터가 있으면 해당 페이지로, 없으면 홈(/)으로 리다이렉트
+      const nextPath = searchParams.get('next') || '/';
+      return NextResponse.redirect(new URL(nextPath, request.url));
     }
   }
   

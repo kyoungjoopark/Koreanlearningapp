@@ -8,15 +8,18 @@ export const authSupabase = clientAuthSupabase;
 const learningSupabaseUrl = process.env.NEXT_PUBLIC_LEARNING_SUPABASE_URL;
 const learningSupabaseAnonKey = process.env.NEXT_PUBLIC_LEARNING_SUPABASE_ANON_KEY;
 
-if (!learningSupabaseUrl || !learningSupabaseAnonKey) {
-  throw new Error('Missing NEXT_PUBLIC_LEARNING_SUPABASE_URL or NEXT_PUBLIC_LEARNING_SUPABASE_ANON_KEY environment variables. Please check your .env.local file.');
-}
-
 // 학습 데이터용 Supabase 클라이언트 (클라이언트 사이드)
-export const learningSupabase = createClient(
-  learningSupabaseUrl,
-  learningSupabaseAnonKey
-);
+export const learningSupabase = (() => {
+  if (!learningSupabaseUrl || !learningSupabaseAnonKey) {
+    // 빌드 시점에는 더미 클라이언트를 반환
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+      return createClient('https://dummy.supabase.co', 'dummy-key');
+    } else {
+      throw new Error('Missing NEXT_PUBLIC_LEARNING_SUPABASE_URL or NEXT_PUBLIC_LEARNING_SUPABASE_ANON_KEY environment variables. Please check your .env.local file.');
+    }
+  }
+  return createClient(learningSupabaseUrl, learningSupabaseAnonKey);
+})();
 
 // 캐시된 클라이언트 인스턴스
 let learningAdminClient: SupabaseClient | null = null;
@@ -35,7 +38,13 @@ export function getLearningAdminSupabase(): SupabaseClient {
   const learningAdminServiceRoleKey = process.env.LEARNING_SUPABASE_SERVICE_ROLE_KEY;
 
   if (!learningAdminSupabaseUrl || !learningAdminServiceRoleKey) {
-    throw new Error('Missing NEXT_PUBLIC_LEARNING_SUPABASE_URL or LEARNING_SUPABASE_SERVICE_ROLE_KEY for admin client. Please check .env.local');
+    // 빌드 시점에는 더미 클라이언트를 반환
+    if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
+      learningAdminClient = createClient('https://dummy.supabase.co', 'dummy-key');
+      return learningAdminClient;
+    } else {
+      throw new Error('Missing NEXT_PUBLIC_LEARNING_SUPABASE_URL or LEARNING_SUPABASE_SERVICE_ROLE_KEY for admin client. Please check .env.local');
+    }
   }
 
   learningAdminClient = createClient(learningAdminSupabaseUrl, learningAdminServiceRoleKey);
@@ -55,7 +64,17 @@ export function createAuthSupabaseAdmin() {
   const authAdminServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!authAdminSupabaseUrl || !authAdminServiceRoleKey) {
-    throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for admin client. Please check .env.local');
+    // 빌드 시점에는 더미 클라이언트를 반환
+    if (process.env.NODE_ENV === 'production') {
+      return createClient('https://dummy.supabase.co', 'dummy-key', {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+    } else {
+      throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY for admin client. Please check .env.local');
+    }
   }
 
   return createClient(

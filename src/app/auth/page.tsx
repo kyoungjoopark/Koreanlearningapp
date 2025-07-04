@@ -45,19 +45,21 @@ export default function AuthPage() {
       try {
         const { user } = await signIn({ email, password })
         setSuccess('로그인 성공! 페이지를 이동합니다...')
-        router.refresh()
         
-        const next = searchParams.get('next')
-
-        // 관리자인지 확인 후 리디렉션
-        if (user && isTeacher(user)) {
-          router.push('/teacher-dashboard');
-        } else {
-          router.push(next || '/');
-        }
+        // 로그인 성공 후 약간의 지연을 두고 리다이렉트
+        setTimeout(() => {
+          const next = searchParams.get('next')
+          
+          // 관리자인지 확인 후 리디렉션
+          if (user && isTeacher(user)) {
+            window.location.href = '/teacher-dashboard';
+          } else {
+            window.location.href = next || '/';
+          }
+        }, 1000); // 1초 후 리다이렉트
+        
       } catch (err: any) {
         setError(err.message || '로그인 중 오류가 발생했습니다.')
-      } finally {
         setLoading(false)
       }
     } else {
