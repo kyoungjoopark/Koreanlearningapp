@@ -125,6 +125,10 @@ export async function PATCH(request: Request) {
 }
 
 export async function GET(request: Request) {
+  if (!supabase) {
+    return NextResponse.json({ error: 'Database client is not initialized.' }, { status: 503 });
+  }
+  
   const { searchParams } = new URL(request.url);
   const grammarItem = searchParams.get('item');
   const lang = searchParams.get('lang') || 'ko';
