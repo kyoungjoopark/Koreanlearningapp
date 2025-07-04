@@ -3,6 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 
+// SpeechRecognition API 타입 정의
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 interface SpeechInputProps {
   onTranscript: (text: string) => void;
   isSubmitting: boolean;
