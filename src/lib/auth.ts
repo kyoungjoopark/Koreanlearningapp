@@ -57,8 +57,8 @@ export interface SignUpData {
   email: string
   password: string
   fullname: string
-  nationality: string
   nickname: string
+  nationality: string
 }
 
 export interface SignInData {
@@ -68,21 +68,26 @@ export interface SignInData {
 
 // 회원가입 (이제 새로운 API 엔드포인트를 호출합니다)
 export async function signUp(data: SignUpData) {
-  const response = await fetch('/api/auth/sign-up', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
+  const { email, password, fullname, nickname, nationality } = data;
+
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        fullname,
+        name: fullname,
+        nickname,
+        nationality,
+      },
     },
-    body: JSON.stringify(data),
   });
 
-  const result = await response.json();
-
-  if (!response.ok) {
-    throw new Error(result.error || '회원가입 중 알 수 없는 오류가 발생했습니다.');
+  if (error) {
+    throw error;
   }
 
-  return result;
+  return { message: '회원가입 이메일을 확인해주세요.' };
 }
 
 // 로그인
@@ -152,7 +157,7 @@ export async function updateUserProfile(data: {
 }
 
 // 현재 사용자 정보 가져오기
-export async function getCurrentUser() {
+export async function getCurrentUser(): Promise<User | null> {
   const { data: { user }, error } = await supabase.auth.getUser()
   
   if (error) {

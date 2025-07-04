@@ -1,26 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_AUTH_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_AUTH_SUPABASE_ANON_KEY;
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing NEXT_PUBLIC_AUTH_SUPABASE_URL or NEXT_PUBLIC_AUTH_SUPABASE_ANON_KEY environment variables. Please check your .env.local file.');
-}
-const supabase = createClient(supabaseUrl, supabaseKey);
+// 인증 및 사용자 정보용 클라이언트 (SSR)
+const createSupaClient = (cookieStore: ReturnType<typeof cookies>) => {
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value, ...options });
+          } catch (error) {
+            // 서버 컴포넌트에서 set 호출 시 발생 가능
+          }
+        },
+        remove(name: string, options: CookieOptions) {
+          try {
+            cookieStore.set({ name, value: '', ...options });
+          } catch (error) {
+            // 서버 컴포넌트에서 remove 호출 시 발생 가능
+          }
+        },
+      },
+    }
+  );
+};
 
 // 답변 추가/업데이트 (PUT)
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const cookieStore = cookies();
+  const supabase = createSupaClient(cookieStore);
+
   try {
     const { answer, teacherName } = await request.json()
     const questionId = params.id
+
+    console.log('Updating question with ID:', questionId)
+    console.log('Answer:', answer)
+    console.log('Teacher name:', teacherName)
 
     if (!answer || !teacherName) {
       return NextResponse.json(
         { error: '답변과 선생님 이름이 필요합니다.' },
         { status: 400 }
+      )
+    }
+
+    // 먼저 질문이 존재하는지 확인
+    const { data: existingQuestion, error: checkError } = await supabase
+      .from('questions')
+      .select('id, status')
+      .eq('id', questionId)
+      .single()
+
+    console.log('Existing question:', existingQuestion)
+    console.log('Check error:', checkError)
+
+    if (checkError || !existingQuestion) {
+      return NextResponse.json(
+        { error: `질문 ID ${questionId}를 찾을 수 없습니다.` },
+        { status: 404 }
       )
     }
 
@@ -71,6 +119,9 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const cookieStore = cookies();
+  const supabase = createSupaClient(cookieStore);
+
   try {
     const questionId = params.id
 

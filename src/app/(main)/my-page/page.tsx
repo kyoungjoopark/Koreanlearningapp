@@ -21,6 +21,16 @@ interface GroupedProgress {
   };
 }
 
+interface Question {
+  id: number;
+  question: string;
+  answer?: string;
+  status: 'pending' | 'answered';
+  created_at: string;
+  answered_at?: string;
+  teacher_name?: string;
+}
+
 export default function MyPage() {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
@@ -31,6 +41,12 @@ export default function MyPage() {
 
   const [question, setQuestion] = useState('');
   const [isSubmittingQuestion, setIsSubmittingQuestion] = useState(false);
+
+  // 질문/답변 관련 상태 추가
+  const [myQuestions, setMyQuestions] = useState<Question[]>([]);
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
+  const [allQuestions, setAllQuestions] = useState<Question[]>([]);
+  const [loadingAllQuestions, setLoadingAllQuestions] = useState(true);
 
   // 프로필 수정을 위한 상태 추가
   const [isEditing, setIsEditing] = useState(false);
@@ -47,15 +63,18 @@ export default function MyPage() {
         // 프로필 정보도 함께 가져오기
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('name, nickname, nationality, level') // level, nationality 추가
+          .select('*') // 모든 컬럼 선택
           .eq('id', data.user.id)
           .single();
         
+        console.log('Profile data:', profileData);
+        console.log('Profile error:', profileError);
+        
         if (profileData) {
-          setName(profileData.name || '');
+          setName(profileData.name || profileData.fullname || '');
           setNickname(profileData.nickname || '');
-          setNationality(profileData.nationality || ''); // 국적 상태 업데이트
-          setLevel(profileData.level || ''); // 레벨 상태 업데이트
+          setNationality(profileData.nationality || ''); 
+          setLevel(profileData.level || profileData.starting_level || profileData.current_level || '');
         }
       }
       setLoadingUser(false);
@@ -80,6 +99,31 @@ export default function MyPage() {
     fetchUserData();
     fetchProgress();
   }, []);
+
+  // 사용자가 로드된 후 질문 목록 가져오기
+  useEffect(() => {
+    const fetchMyQuestions = async () => {
+      if (!user?.email) return;
+      
+      try {
+        const response = await fetch(`/api/questions?student_email=${user.email}`);
+        if (response.ok) {
+          const data = await response.json();
+          setMyQuestions(data);
+        } else {
+          console.error("Failed to fetch questions");
+        }
+      } catch (error) {
+        console.error("Error fetching questions:", error);
+      } finally {
+        setLoadingQuestions(false);
+      }
+    };
+
+    if (user?.email) {
+      fetchMyQuestions();
+    }
+  }, [user?.email]);
 
   const groupedProgress = progress.reduce((acc, lesson) => {
     const course = lesson.과목 || '기타';
@@ -111,6 +155,14 @@ export default function MyPage() {
       if (response.ok) {
         alert('질문이 성공적으로 전송되었습니다.');
         setQuestion('');
+        // 질문 목록 새로고침
+        if (user?.email) {
+          const questionsResponse = await fetch(`/api/questions?student_email=${user.email}`);
+          if (questionsResponse.ok) {
+            const questionsData = await questionsResponse.json();
+            setMyQuestions(questionsData);
+          }
+        }
       } else {
         // 응답 본문이 있는지 확인 후 JSON 파싱 시도
         const text = await response.text();
@@ -223,7 +275,31 @@ export default function MyPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-500">국적</label>
-                        <input type="text" value={nationality} onChange={(e) => setNationality(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/>
+                        <select value={nationality} onChange={(e) => setNationality(e.target.value)} className="mt-1 w-full p-2 border rounded-md bg-white">
+                          <option value="">국적 선택</option>
+                          <option value="Korea">Korea (한국)</option>
+                          <option value="China">China (중국)</option>
+                          <option value="Japan">Japan (일본)</option>
+                          <option value="USA">USA (미국)</option>
+                          <option value="Canada">Canada (캐나다)</option>
+                          <option value="Australia">Australia (호주)</option>
+                          <option value="UK">UK (영국)</option>
+                          <option value="Germany">Germany (독일)</option>
+                          <option value="France">France (프랑스)</option>
+                          <option value="Spain">Spain (스페인)</option>
+                          <option value="Italy">Italy (이탈리아)</option>
+                          <option value="Russia">Russia (러시아)</option>
+                          <option value="Brazil">Brazil (브라질)</option>
+                          <option value="Mexico">Mexico (멕시코)</option>
+                          <option value="India">India (인도)</option>
+                          <option value="Thailand">Thailand (태국)</option>
+                          <option value="Vietnam">Vietnam (베트남)</option>
+                          <option value="Philippines">Philippines (필리핀)</option>
+                          <option value="Indonesia">Indonesia (인도네시아)</option>
+                          <option value="Malaysia">Malaysia (말레이시아)</option>
+                          <option value="Singapore">Singapore (싱가포르)</option>
+                          <option value="Other">Other (기타)</option>
+                        </select>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-500">시작 레벨</label>
@@ -256,29 +332,114 @@ export default function MyPage() {
             {/* 선생님께 질문 카드 */}
             <div className="bg-white rounded-xl shadow-lg p-8">
               <h2 className="text-2xl font-bold text-gray-800 mb-4">선생님께 질문</h2>
-              <textarea 
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-korean-400 focus:border-korean-400 transition"
-                rows={4}
-                placeholder="한국어에 대해 궁금한 점을 빠르게 질문해보세요..."
-                disabled={isSubmittingQuestion}
-              ></textarea>
-              <div className="flex justify-between items-center mt-4">
-                <div className="space-x-2">
-                  <span className="text-sm font-semibold text-gray-600">질문 예시:</span>
-                  <button className="text-xs text-korean-600 bg-korean-100 px-2 py-1 rounded-full hover:bg-korean-200">"~고 있다"와 "~고 있습니다"의 차이?</button>
-                  <button className="text-xs text-korean-600 bg-korean-100 px-2 py-1 rounded-full hover:bg-korean-200">높임말은 언제 사용하나요?</button>
-                </div>
-                <button 
+              <p className="text-sm text-gray-600 mb-6">
+                한국어에 대해 궁금한 점을 빠르게 질문해보세요. 관리자가 확인 후 답변해드립니다.
+              </p>
+              
+              <div className="flex items-start gap-4">
+                <textarea
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  placeholder="예: '-(으)ㄴ/는 반면에' 와 '는데'의 차이점은 무엇인가요?"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-korean-500 focus:border-korean-500 transition"
+                  rows={3}
+                />
+                <button
                   onClick={handleQuestionSubmit}
                   disabled={isSubmittingQuestion}
-                  className="px-6 py-2 bg-korean-600 text-white font-bold rounded-lg hover:bg-korean-700 transition-colors flex items-center gap-2 disabled:bg-gray-400"
+                  className="px-4 py-2 h-full bg-korean-600 text-white font-semibold rounded-lg hover:bg-korean-700 disabled:bg-gray-400 transition-colors flex-shrink-0"
                 >
-                  <Send size={16}/> 
-                  {isSubmittingQuestion ? '전송 중...' : '빠른 질문'}
+                  <Send className="w-5 h-5" />
                 </button>
               </div>
+
+              <div className="mt-4">
+                <p className="text-sm text-gray-500 mb-2">질문 예시:</p>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setQuestion('"~고 있다"와 "~고 있습니다"의 차이?')} className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition">"~고 있다"와 "~고 있습니다"의 차이?</button>
+                  <button onClick={() => setQuestion('높임말은 언제 사용하나요?')} className="text-xs px-3 py-1 bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition">높임말은 언제 사용하나요?</button>
+                </div>
+              </div>
+            </div>
+
+            {/* 내 질문과 답변 카드 */}
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                <MessageSquare className="w-7 h-7 text-korean-600"/>
+                내 질문과 답변
+              </h2>
+              
+              {loadingQuestions ? (
+                <p className="text-center py-8 text-gray-500">질문 목록을 불러오는 중...</p>
+              ) : myQuestions.length > 0 ? (
+                <div className="space-y-4">
+                  {myQuestions.map((q) => (
+                    <div key={q.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                      {/* 질문 헤더 */}
+                      <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <HelpCircle className="w-5 h-5 text-blue-600" />
+                            <span className="font-semibold text-gray-900">질문</span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              q.status === 'answered' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {q.status === 'answered' ? '답변 완료' : '답변 대기'}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-500">
+                            {new Date(q.created_at).toLocaleDateString('ko-KR')} {new Date(q.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 질문 내용 */}
+                      <div className="px-6 py-4 bg-white">
+                        <p className="text-gray-800 leading-relaxed">{q.question}</p>
+                      </div>
+
+                      {/* 답변 부분 */}
+                      {q.status === 'answered' && q.answer ? (
+                        <div className="bg-blue-50 border-t border-blue-200">
+                          <div className="px-6 py-3 bg-blue-100 border-b border-blue-200">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <MessageSquare className="w-5 h-5 text-blue-600" />
+                                <span className="font-semibold text-blue-900">
+                                  {q.teacher_name || '선생님'}의 답변
+                                </span>
+                              </div>
+                              {q.answered_at && (
+                                <span className="text-sm text-blue-600">
+                                  {new Date(q.answered_at).toLocaleDateString('ko-KR')} {new Date(q.answered_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="px-6 py-4">
+                            <p className="text-gray-800 leading-relaxed">{q.answer}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="bg-yellow-50 border-t border-yellow-200 px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="animate-pulse w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            <p className="text-yellow-700 font-medium">답변을 준비 중입니다...</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+                  <HelpCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg mb-2">아직 질문한 내용이 없습니다.</p>
+                  <p className="text-gray-400 text-sm">위에서 궁금한 점을 질문해보세요!</p>
+                </div>
+              )}
             </div>
           </div>
 

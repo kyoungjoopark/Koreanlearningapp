@@ -3,10 +3,10 @@ import { cookies } from 'next/headers'
 import { createClient as createGenericClient } from '@supabase/supabase-js'
 
 // 인증용 클라이언트 (쿠키 기반)
-export const createAuthClient = (cookieStore: ReturnType<typeof cookies>) => {
+export function createClient(cookieStore: ReturnType<typeof cookies>) {
   return createServerClient(
-    process.env.NEXT_PUBLIC_AUTH_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_AUTH_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
@@ -36,7 +36,9 @@ export const createAuthClient = (cookieStore: ReturnType<typeof cookies>) => {
 }
 
 // 학습 데이터용 클라이언트 (서비스 키 기반)
-export const createLearningClient = () => {
+export function createLearningClient() {
+  const isServer = typeof window === 'undefined';
+
   if (
     !process.env.NEXT_PUBLIC_LEARNING_SUPABASE_URL ||
     !process.env.LEARNING_SUPABASE_SERVICE_ROLE_KEY
@@ -54,7 +56,7 @@ export const createLearningClient = () => {
       },
       global: {
         fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }),
-      },
+      }
     }
   );
-}; 
+} 

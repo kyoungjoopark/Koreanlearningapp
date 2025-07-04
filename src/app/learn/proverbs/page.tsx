@@ -8,13 +8,17 @@ export interface Proverb {
   id: number;
   proverb: string;
   meaning: string;
+  meaning_en: string;
+  example_sentence: string;
+  example_sentence_en: string;
+  explanation_en: string | null;
 }
 
 async function getProverbs() {
   const supabase = createLearningClient();
   const { data, error } = await supabase
-    .from('proverbs')
-    .select('*')
+    .from('Proverbs')
+    .select('id, proverb, meaning, meaning_en, example_sentence, example_sentence_en, explanation_en')
     .order('proverb', { ascending: true });
 
   if (error) {

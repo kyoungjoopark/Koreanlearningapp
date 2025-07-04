@@ -3,11 +3,11 @@ import { generateText, streamText } from 'ai'
 import { createClient } from '@supabase/supabase-js'
 import type { DicEntry, EmbeddingEntry } from '@/types/supabase'
 
-// Supabase 관리자 클라이언트 생성
+// Supabase 관리자 클라이언트 생성 (학습 DB용)
 // 서비스 키를 사용하므로 서버 사이드에서만 사용해야 합니다.
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_LEARNING_SUPABASE_URL!,
+  process.env.LEARNING_SUPABASE_SERVICE_ROLE_KEY!
 )
 
 // OpenAI API 키 확인

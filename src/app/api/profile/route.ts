@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
-const createSupaClient = (cookieStore: ReturnType<typeof cookies>) => {
+const createClient = (cookieStore: ReturnType<typeof cookies>) => {
   return createServerClient(
-    process.env.NEXT_PUBLIC_AUTH_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_AUTH_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) { return cookieStore.get(name)?.value },
@@ -22,7 +22,7 @@ const createSupaClient = (cookieStore: ReturnType<typeof cookies>) => {
 
 export async function PATCH(request: Request) {
   const cookieStore = cookies();
-  const supabase = createSupaClient(cookieStore);
+  const supabase = createClient(cookieStore);
 
   try {
     const { data: { user } } = await supabase.auth.getUser();

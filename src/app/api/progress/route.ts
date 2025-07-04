@@ -15,8 +15,8 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 // 현재 사용자의 인증 정보를 가져오기 위한 클라이언트
 const createAuthClient = (cookieStore: ReturnType<typeof cookies>) => {
   return createServerClient(
-    process.env.NEXT_PUBLIC_AUTH_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_AUTH_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {

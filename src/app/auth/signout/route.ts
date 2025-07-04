@@ -1,11 +1,11 @@
-import { createAuthClient } from '@/utils/supabase/server'
+import { createClient } from '@/utils/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { type NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 export async function POST(req: NextRequest) {
   const cookieStore = cookies()
-  const supabase = createAuthClient(cookieStore)
+  const supabase = createClient(cookieStore)
 
   // Check if we have a session
   const {

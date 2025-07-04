@@ -7,14 +7,14 @@ import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { BookMarked, ChevronRight, ArrowLeft, Layers, Library, BookOpen } from 'lucide-react'
 import Image from 'next/image'
-import sejongHakdangImage from '@/assets/세종학당 한국어.png';
-import sejongPracticalImage from '@/assets/세종학당 실용 한국어.png';
-import sejongImage from '@/assets/세종 한국어.png';
+import sejongHakdangImage from '@/assets/sejong_hakdang.png';
+import sejongPracticalImage from '@/assets/sejong_practical.png';
+import sejongKoreanImage from '@/assets/sejong_korean.png';
 
 const MAIN_COURSES = [
   { name: "세종학당 한국어", image: sejongHakdangImage, isPending: false },
   { name: "세종학당 실용 한국어", image: sejongPracticalImage, isPending: false },
-  { name: "세종한국어 (예정)", image: sejongImage, isPending: true }
+  { name: "세종한국어 (예정)", image: sejongKoreanImage, isPending: true }
 ];
 
 export default function CoursesPage() {

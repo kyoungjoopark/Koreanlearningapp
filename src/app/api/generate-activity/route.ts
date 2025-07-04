@@ -103,31 +103,35 @@ ${meaningInfoString}
   - **복잡한 구조 금지:** 복잡한 절이나 이중 서술어 등은 사용하지 마세요.
 `;
           basePrompt = `
-${levelSpecificInstruction}
-한국어 단어 '${wordData.word}'를 사용하여, 교과서 체 문체, 초급 레벨(A1)에 맞는 **다양하고 창의적인 새로운 예문 3개**와 각 예문에 대한 영어 번역을 만들어주세요.
+주어진 단어 '${wordData.word}'를 사용하여 예문을 생성합니다.
+**가장 중요한 목표는, 현재 학습 중인 단원의 맥락에 맞는 예문을 만드는 것입니다.**
+아래 '단원 정보'에 제공된 **주요 문법과 제목**을 반드시 참고하고, 이를 예문에 자연스럽게 반영하여, 교과서 체 문체의 초급 레벨(A1) 예문 3개와 영어 번역을 만들어주세요.
 
-추가 지침:
+${levelSpecificInstruction}
 `;
         } else {
           levelSpecificInstruction = `
 - **단순화 요청**: 특히 A1 레벨(초급 1단계)에 해당하는 예문은 매우 짧고 기본적인 어휘와 문장 구조를 사용하고, 복잡한 절이나 수식어 사용을 최소화해주세요.
 `;
           basePrompt = `
-한국어 단어 '${wordData.word}'를 사용하여, 교과서 체 문체, 초급 레벨(A1~A2)에 맞는 **다양하고 창의적인 새로운 예문 3개**와 각 예문에 대한 영어 번역을 만들어주세요.
+주어진 단어 '${wordData.word}'를 사용하여 예문을 생성합니다.
+**가장 중요한 목표는, 현재 학습 중인 단원의 맥락에 맞는 예문을 만드는 것입니다.**
+아래 '단원 정보'에 제공된 **주요 문법과 제목**을 반드시 참고하고, 이를 예문에 자연스럽게 반영하여, 교과서 체 문체의 초급 레벨(A1~A2) 예문 3개와 영어 번역을 만들어주세요.
 
 추가 지침:
 `;
         }
 
         detailedPrompt = `
-${basePrompt}- **매우 중요: 예문의 다양성 및 적절한 높임법 사용**:
+${basePrompt}- **단원 정보 (매우 중요!):**
+    - 단원 제목: ${unitTitle || '제공되지 않음'}
+    - 단원 주요 문법: ${grammarContext || '제공되지 않음'}
+    - 단원 전체 어휘: ${unitVocabulary || '제공되지 않음'}
+    - 단원 주요 관련 키워드: ${Array.isArray(unitRelatedKeywords) && unitRelatedKeywords.length > 0 ? unitRelatedKeywords.join(', ') : '제공되지 않음'}
+- **예문 생성 지침:**
     - 다양한 일상생활의 상황, 인물(예: 다양한 가족 구성원, 친구, 여러 직업의 사람들 등), 장소 등을 활용하여 각 예문이 서로 다른 내용을 담도록 해주세요.
     - **각 인물과 상황에 맞는 적절한 높임 표현을 사용해야 합니다. 예를 들어, '친구'를 주어로 사용할 경우 '친구께서'와 같은 어색한 높임은 절대 사용하지 말고, '친구가' 또는 '친구는'과 같이 자연스러운 표현을 사용하세요. 높임 표현의 예시가 필요하다면 '할머니', '선생님'과 같이 높임이 자연스러운 대상을 주어로 설정하고, 그에 맞는 서술어를 사용해주세요.**
 - 예문은 현재 학습 중인 단원의 내용과 관련성이 높아야 합니다. 다음 정보를 참고하고, **적극적으로 활용**하여 예문을 만들어 주세요:
-    - 단원 제목: ${unitTitle || '제공되지 않음'}
-    - 단원 주요 문법: ${grammarContext || '제공되지 않음'} (가능하다면 이 문법 사항을 예문에 활용하거나, 이 문법이 자연스럽게 사용될 수 있는 예문을 만들어주세요.)
-    - 단원 전체 어휘: ${unitVocabulary || '제공되지 않음'} (이 어휘들을 예문에 자연스럽게 포함시켜주세요.)
-    - 단원 주요 관련 키워드: ${Array.isArray(unitRelatedKeywords) && unitRelatedKeywords.length > 0 ? unitRelatedKeywords.join(', ') : '제공되지 않음'} (이 키워드들을 예문에 자연스럽게 포함시켜주세요.)
 - **매우 중요: 논리적 오류 방지**:
     - 단어의 의미적, 논리적 관계를 반드시 고려해야 합니다. 한 단어가 다른 단어의 종류에 포함되는 경우, 이 둘을 비교하는 어색한 문장을 만들지 마세요.
     - **나쁜 예시 (논리적 오류):** (단어가 '고궁' 또는 '건축물'일 때) "고궁의 디자인은 한국 전통 건축물과 다릅니다." (X) -> '고궁'은 '전통 건축물'의 한 종류이므로 이런 비교는 어색합니다.
@@ -239,7 +243,7 @@ ${targetSentencesString}
     }
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo", // 필요시 gpt-4 등으로 변경 가능
+      model: "gpt-3.5-turbo-0125", // 안정적인 최신 모델 버전 명시
       messages: [
         { role: "system", content: "You are a helpful assistant specialized in creating Korean language learning materials. Please strictly follow the output format requested and provide only JSON." },
         { role: "user", content: detailedPrompt }

@@ -2,6 +2,8 @@ import Link from 'next/link'
 import IdiomsClientPage from './IdiomsClientPage'
 import { createLearningClient } from '@/utils/supabase/server'
 
+export const dynamic = 'force-dynamic';
+
 // --- 레벨별 관용구 데이터 가져오기 ---
 async function getIdiomsByLevel(level: string) {
     console.log(`[IDIOM_FETCH_DEBUG] 1. 함수 시작: 레벨 "${level}"에 대한 데이터를 가져옵니다.`);

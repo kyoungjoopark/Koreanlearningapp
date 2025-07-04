@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ChevronRight, ArrowLeft } from 'lucide-react';
 import { createLearningClient } from '@/utils/supabase/server';
+import Image from 'next/image';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,6 +9,30 @@ const LEVEL_ORDER: { [key: string]: number } = {
   '초급': 1,
   '중급': 2,
   '고급': 3,
+};
+
+const LEVEL_DESCRIPTIONS: { [key: string]: string } = {
+  '초급': '사용 빈도가 낮은 관용구',
+  '중급': '사용 빈도가 보통인 관용구',
+  '고급': '사용 빈도가 높은 관용구',
+};
+
+const LEVEL_CIRCLE_TEXT: { [key: string]: string } = {
+  '초급': '하',
+  '중급': '중',
+  '고급': '상',
+};
+
+const LEVEL_TITLE_TEXT: { [key: string]: string } = {
+  '초급': '빈도 낮음',
+  '중급': '빈도 보통',
+  '고급': '빈도 높음',
+};
+
+const LEVEL_IMAGES: { [key: string]: string } = {
+  '초급': '/assets/low.png',
+  '중급': '/assets/mid.png',
+  '고급': '/assets/high.png',
 };
 
 async function getLevels() {
@@ -42,7 +67,7 @@ export default async function IdiomLevelSelectPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <Link href="/expressions" className="flex items-center text-gray-600 hover:text-gray-900 font-medium">
               <ArrowLeft className="w-5 h-5 mr-2" />
@@ -51,35 +76,47 @@ export default async function IdiomLevelSelectPage() {
           </div>
 
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-korean-800">관용구 학습</h1>
+            <h1 className="text-3xl font-bold text-korean-800">관용구 학습</h1>
             <p className="text-lg text-korean-600 mt-2">
-              도전하고 싶은 레벨을 선택하여 학습을 시작하세요.
+              사용 빈도별로 관용구를 학습하세요.
             </p>
           </div>
           
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-gray-200 space-y-2">
                 {levels.map((level, index) => (
-                  <li key={level}>
+                  <li key={level} className="first:pt-0 last:pb-0">
                     <Link href={`/learn/idioms/${level}`}>
-                      <div className="flex items-center justify-between p-6 hover:bg-korean-50 transition-colors">
+                      <div className="flex items-center justify-between p-8 hover:bg-korean-50 transition-colors mx-4 my-3 rounded-lg">
                         <div className="flex items-center">
-                          <div className="bg-korean-100 text-korean-700 font-bold rounded-full w-12 h-12 flex items-center justify-center mr-6">
-                            {level}
+                          <div className="w-24 h-24 flex items-center justify-center mr-10">
+                            {LEVEL_IMAGES[level] ? (
+                              <Image
+                                src={LEVEL_IMAGES[level]}
+                                alt={`${LEVEL_TITLE_TEXT[level]} 캐릭터`}
+                                width={90}
+                                height={90}
+                                className="rounded-2xl object-cover"
+                              />
+                            ) : (
+                              <div className="bg-korean-100 text-korean-700 font-bold rounded-full w-18 h-18 flex items-center justify-center">
+                                {LEVEL_CIRCLE_TEXT[level] || level}
+                              </div>
+                            )}
                           </div>
                           <div>
-                            <h2 className="text-xl font-semibold text-korean-800">레벨 {level}</h2>
-                            <p className="text-sm text-korean-500">관용구 학습하기</p>
+                            <h2 className="text-2xl font-semibold text-korean-800 mb-1">{LEVEL_TITLE_TEXT[level] || '관용구 학습하기'}</h2>
+                            <p className="text-lg text-korean-500">{LEVEL_DESCRIPTIONS[level] || '관용구 학습하기'}</p>
                           </div>
                         </div>
-                        <ChevronRight className="w-6 h-6 text-gray-400" />
+                        <ChevronRight className="w-8 h-8 text-gray-400" />
                       </div>
                     </Link>
                   </li>
                 ))}
                 {levels.length === 0 && (
-                     <li className="p-6 text-center text-korean-500">
+                     <li className="p-10 text-center text-korean-500">
                         학습할 수 있는 관용구 레벨이 없습니다.
                      </li>
                 )}

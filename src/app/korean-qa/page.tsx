@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import TTSButton from '@/components/TTSButton'
+import SpeechInput from '@/components/SpeechInput'
+import { ArrowLeft, Download, Trash2 } from 'lucide-react'
 
 interface RecentChat {
   id: number
@@ -224,12 +226,12 @@ function KoreanQAContent() {
                   }`}
                 >
                   <div className="whitespace-pre-wrap">{message.content}</div>
-                  {message.role === 'assistant' && (
+                  {message.role === 'assistant' && message.content && (
                     <div className="flex justify-end mt-2">
                       <TTSButton 
                         text={message.content} 
                         size="sm" 
-                        className="bg-korean-600 hover:bg-korean-700"
+                        className="!bg-blue-600 hover:!bg-blue-700"
                       />
                     </div>
                   )}
@@ -240,8 +242,8 @@ function KoreanQAContent() {
               <div className="flex justify-start">
                 <div className="bg-korean-100 text-korean-800 max-w-xs lg:max-w-md px-4 py-2 rounded-lg">
                   <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-korean-600 mr-2"></div>
-                    AI 선생님이 생각 중...
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-korean-700 mr-2"></div>
+                    <span>답변을 생각하고 있어요...</span>
                   </div>
                 </div>
               </div>
@@ -251,21 +253,25 @@ function KoreanQAContent() {
       </div>
 
       {/* 입력 폼 */}
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="한국어에 대해 질문해보세요..."
-          className="flex-1 px-4 py-3 border border-korean-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-korean-500"
-          disabled={isLoading}
-        />
-        <button
-          type="submit"
-          disabled={isLoading || !input.trim()}
-          className="px-6 py-3 bg-korean-600 text-white rounded-lg hover:bg-korean-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-        >
-          {isLoading ? '전송 중...' : '전송'}
-        </button>
+      <form onSubmit={handleSubmit} className="mt-4">
+        <div className="flex items-center bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden p-2">
+          <SpeechInput onTranscript={setInput} isSubmitting={isLoading} />
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="여기에 질문을 입력하거나 마이크 버튼을 누르세요..."
+            className="flex-grow px-4 py-2 bg-transparent focus:outline-none text-gray-800 disabled:bg-gray-100"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="bg-korean-600 text-white px-6 py-2 rounded-lg hover:bg-korean-700 focus:outline-none focus:ring-2 focus:ring-korean-500 focus:ring-offset-2 disabled:bg-korean-300 disabled:cursor-not-allowed transition-colors"
+          >
+            {isLoading ? '전송 중...' : '전송'}
+          </button>
+        </div>
       </form>
 
       {/* 추천 질문들 */}
@@ -304,4 +310,4 @@ export default function KoreanQAPage() {
       <KoreanQAContent />
     </ProtectedRoute>
   )
-} 
+}

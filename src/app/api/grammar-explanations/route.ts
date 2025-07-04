@@ -122,4 +122,44 @@ export async function PATCH(request: Request) {
     console.error('[PATCH /api/grammar-explanations] API 오류:', error);
     return NextResponse.json({ error: '내부 서버 오류', details: error.message }, { status: 500 });
   }
+}
+
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const grammarItem = searchParams.get('item');
+  const lang = searchParams.get('lang') || 'ko';
+
+  if (!grammarItem) {
+    return NextResponse.json({ error: '문법 항목(item) 쿼리 파라미터가 필요합니다.' }, { status: 400 });
+  }
+
+  try {
+    // DB는 인코딩된 키를 저장하므로, 조회 시에도 인코딩된 키를 사용
+    const encodedGrammarItem = encodeURIComponent(grammarItem);
+
+    const { data, error } = await supabase
+      .from('grammar_explanations')
+      .select('explanation')
+      .eq('grammar_item', encodedGrammarItem)
+      .eq('language', lang)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') { // 'PGRST116'는 결과가 0개일 때의 코드
+        return NextResponse.json({ error: `'${grammarItem}'에 대한 설명을 찾을 수 없습니다.` }, { status: 404 });
+      }
+      console.error('Supabase DB 조회 에러:', error);
+      throw error;
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: `'${grammarItem}'에 대한 설명을 찾을 수 없습니다.` }, { status: 404 });
+    }
+
+    return NextResponse.json(data);
+
+  } catch (error: any) {
+    console.error(`문법 설명 조회 중 에러 발생 (item: ${grammarItem}):`, error);
+    return NextResponse.json({ error: error.message || '알 수 없는 서버 오류가 발생했습니다.' }, { status: 500 });
+  }
 } 

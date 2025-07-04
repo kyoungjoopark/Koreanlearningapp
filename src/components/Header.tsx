@@ -13,22 +13,21 @@ export default function Header() {
   const router = useRouter()
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-    };
-
-    fetchUser();
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser()
+      setUser(data.user)
+    }
+    
+    getUser()
 
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      // 이벤트가 발생하면 (로그인, 로그아웃 등) 서버로부터 사용자 정보를 다시 가져옵니다.
-      fetchUser();
-    });
+      setUser(session?.user ?? null)
+    })
 
     return () => {
-      authListener?.subscription.unsubscribe();
-    };
-  }, [supabase]);
+      authListener.subscription.unsubscribe()
+    }
+  }, [supabase])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -41,34 +40,37 @@ export default function Header() {
   const isAuthPage = pathname === '/auth'
 
   return (
-    <header className="flex items-center justify-center p-4 bg-gray-100 dark:bg-gray-800 border-b gap-6">
-      <Link href="/" className="text-xl font-bold">
-        Korean Learning App
-      </Link>
-      <div className="flex items-center gap-4">
-        {user ? (
-          <>
-            <span className="text-sm text-gray-600 dark:text-gray-300">
-              안녕하세요, {user.email?.split('@')[0] || '사용자'}님!
-            </span>
+    <header className="p-4 bg-gray-100 dark:bg-gray-800 border-b">
+      <div className="max-w-5xl mx-auto grid grid-cols-3 items-center px-4 md:px-10">
+        {/* Left Spacer */}
+        <div />
+
+        {/* Centered Title */}
+        <div className="flex flex-col items-center text-center">
+          <Link href="/" className="text-xl font-bold text-gray-800 dark:text-white">
+            Korean Learning App
+          </Link>
+          {user && (
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-gray-100 text-sm font-semibold text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+              className="px-3 py-1 bg-gray-200 text-xs font-semibold text-gray-700 rounded-md hover:bg-gray-300 transition-colors mt-1"
             >
               Logout
             </button>
-          </>
-        ) : (
-          // auth 페이지에서는 Login 버튼을 보여주지 않음
-          !isAuthPage && (
+          )}
+        </div>
+
+        {/* Right Aligned Buttons */}
+        <div className="flex justify-end">
+          {!user && !isAuthPage && (
             <Link
               href="/auth"
               className="px-4 py-2 bg-korean-600 text-sm font-semibold text-white rounded-md hover:bg-korean-700 transition-colors"
             >
               Login
             </Link>
-          )
-        )}
+          )}
+        </div>
       </div>
     </header>
   )

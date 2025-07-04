@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 // 인증 및 사용자 정보용 클라이언트 (SSR)
 const createSupaClient = (cookieStore: ReturnType<typeof cookies>) => {
   return createServerClient(
-    process.env.NEXT_PUBLIC_AUTH_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_AUTH_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
         get(name: string) {
@@ -95,7 +96,42 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const studentEmail = searchParams.get('student_email');
+    const isTeacher = searchParams.get('isTeacher');
 
+    // 교사용 질문 목록 조회
+    if (isTeacher === 'true') {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+      if (authError || !user) {
+        return NextResponse.json({ error: 'Unauthorized: 사용자를 인증할 수 없습니다.' }, { status: 401 });
+      }
+
+      // 사용자가 교사인지 확인
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError || profileData?.role !== 'teacher') {
+        return NextResponse.json({ error: 'Forbidden: 교사 권한이 필요합니다.' }, { status: 403 });
+      }
+
+      // 모든 답변 대기 질문 조회
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        throw error;
+      }
+      
+      return NextResponse.json(data);
+    }
+
+    // 학생용 질문 목록 조회
     if (!studentEmail) {
       return NextResponse.json({ error: 'student_email is required' }, { status: 400 });
     }

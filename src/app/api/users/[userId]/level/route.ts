@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createAuthClient } from '@/utils/supabase/server'
+import { createClient } from '@/utils/supabase/server'
 
 export async function POST(
   req: Request,
@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const cookieStore = cookies()
-    const supabase = createAuthClient(cookieStore)
+    const supabase = createClient(cookieStore)
     const body = await req.json()
     const { starting_level, current_level } = body
 

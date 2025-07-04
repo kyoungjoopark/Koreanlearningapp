@@ -63,7 +63,21 @@ export default function ProverbsClient({ proverbs }: { proverbs: Proverb[] }) {
           filteredProverbs.map(proverb => (
             <div key={proverb.id} className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
               <h3 className="text-xl font-semibold text-korean-800 mb-2">{proverb.proverb}</h3>
-              <p className="text-korean-600">{proverb.meaning}</p>
+              <p className="text-korean-600 mb-2">{proverb.meaning}</p>
+              <p className="text-gray-500 text-sm italic mb-4">{proverb.meaning_en}</p>
+              
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <h4 className="font-semibold text-korean-700 mb-2">예문:</h4>
+                <p className="text-korean-600">{proverb.example_sentence}</p>
+                <p className="text-gray-500 text-sm italic">{proverb.example_sentence_en}</p>
+              </div>
+
+              {proverb.explanation_en && (
+                <div className="border-t border-gray-200 pt-4 mt-4">
+                  <h4 className="font-semibold text-korean-700 mb-2">Detailed Explanation:</h4>
+                  <p className="text-gray-700 whitespace-pre-line">{proverb.explanation_en}</p>
+                </div>
+              )}
             </div>
           ))
         ) : (

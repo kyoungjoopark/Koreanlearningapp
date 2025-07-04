@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, BookText, Lightbulb, Mic, Headphones, Edit, Eye, Volume2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ArrowLeft, BookText, Lightbulb, Mic, Headphones, Edit, Eye, Volume2, ChevronLeft, ChevronRight, PauseCircle } from 'lucide-react'
 
 // 대표 과목명 목록 (courses/page.tsx의 MAIN_COURSES와 일치 또는 공유 필요)
 const REPRESENTATIVE_COURSES = [
@@ -74,35 +74,123 @@ export default function UnitPage() {
     nextUnit: { id: number; title: string } | null;
   } | null>(null);
 
-  // 학습 완료 상태 추가
-  const [isCompleted, setIsCompleted] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // --- TTS 상태 관리 시스템 ---
+  const [ttsState, setTtsState] = useState({ id: null as string | null, isPlaying: false, isPaused: false });
+  const utteranceQueueRef = useRef<SpeechSynthesisUtterance[]>([]);
+  // ---
 
-  // 학습 완료 처리 함수
-  const handleComplete = async () => {
-    if (!unitId) return;
-    setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lesson_id: parseInt(unitId) })
-      });
-      if (response.ok) {
-        setIsCompleted(true);
-      } else {
-        const errorData = await response.json();
-        console.error("Failed to mark as complete:", errorData.error);
-        alert('학습 완료 처리에 실패했습니다.');
-      }
-    } catch (error) {
-      console.error("Error submitting completion:", error);
-      alert('학습 완료 처리 중 오류가 발생했습니다.');
-    } finally {
-      setIsSubmitting(false);
+  // *** 여기로 함수를 옮겨서 먼저 선언되도록 합니다. ***
+  const formatStructuredExplanation = (data: any): string => {
+    // data 자체가 explanation 객체일 수도 있고, data.explanation에 있을 수도 있으므로 둘 다 확인합니다.
+    const explanation = data.explanation || data;
+    
+    if (typeof explanation === 'string') {
+        return explanation; // 이미 문자열이면 그대로 반환
     }
-  };
 
+    if (!explanation || typeof explanation !== 'object') {
+        // 고급 수업 계획 형식의 meta 데이터가 있는 경우, 아직 처리되지 않은 것으로 간주하지 않도록 수정
+        if (data.meta) {
+          // 이 경우는 아직 formatExplanationResult 에서 처리해야 함
+        } else {
+          return "설명 데이터를 처리할 수 없습니다.";
+        }
+    }
+
+    // 새로운 고급(ADVANCED) 응답 형식 (phenomenon_summary) - 이전 버전 호환
+    if (explanation.phenomenon_summary) {
+      const summary = `[사회문화 현상 요약]\n${explanation.phenomenon_summary}`;
+      const discussion = (explanation.discussion_points || []).map((p: any) => `[생각해볼 점: ${p.title}]\n- (제안) ${p.suggestion}\n- (질문) ${p.question}`).join('\n\n');
+      const expressions = (explanation.related_expressions || []).length > 0 ? `[관련 표현]\n` + (explanation.related_expressions.map((e: any) => `- ${e.expression}: ${e.description}`).join('\n')) : '';
+      const further = explanation.further_thought ? `[더 깊이 생각해보기]\n${explanation.further_thought}` : '';
+      return [summary, discussion, expressions, further].filter(Boolean).join('\n\n\n');
+    }
+    
+    // 고급(nuance_introduction) 응답 형식 처리 - 이전 버전 호환
+    if (explanation.nuance_introduction) {
+        const intro = `뉘앙스 소개\n${explanation.nuance_introduction}`;
+        const implications = (explanation.socio_cultural_implications || []).map((item: any) => 
+            `사회/문화적 함의: ${item.title}\n${item.explanation}\n예문: ${item.example.korean} (${item.example.english})`
+        ).join('\n\n');
+        const insight = `언어학적 관점\n${explanation.linguistic_insight}`;
+        const pitfalls = `오류 피하기\n${explanation.avoiding_pitfalls}`;
+
+        return [intro, implications, insight, pitfalls].filter(Boolean).join('\n\n\n');
+    }
+    
+    // 초급/중급(introduction) 응답 형식 처리
+    if (explanation.introduction) {
+        const intro = explanation.introduction;
+        const scenarios = (explanation.usage_scenarios || []).map((s: any, index: number) => `[용법 ${index + 1}] ${s.title}\n${s.explanation}\n예문: ${s.example.korean}  (${s.example.english})`).join('\n\n');
+        const conjugation = explanation.conjugation_rules ? `[결합 규칙]\n${explanation.conjugation_rules}` : '';
+        const mistakes = explanation.common_mistakes ? `[자주 하는 실수]\n${explanation.common_mistakes}` : '';
+        return [intro, scenarios, conjugation, mistakes].filter(Boolean).join('\n\n');
+    }
+    
+    // '고급' 수업 계획 형식 최종 추가
+    if (data.advanced_explanation) {
+      const { context_purpose, advanced_explanation, grammar_summary, example_sentences } = data;
+      // 일반 텍스트 기반으로 포맷팅하여 UI 일관성 확보
+      let content = `${context_purpose}\n\n[개요]\n${advanced_explanation.summary}\n\n`;
+      
+      content += `[심화 주제 토론]\n`;
+      advanced_explanation.themes.forEach((theme: any, index: number) => {
+        content += `${index + 1}. ${theme.title}\n${theme.description}\n`;
+        theme.questions.forEach((q: string) => (content += `- ${q}\n`));
+      });
+
+      content += `\n[문법 요약]\n${grammar_summary.description}\n`;
+      grammar_summary.expressions.forEach((exp: any) => {
+        content += `- ${exp.form}: ${exp.meaning}\n  (예: ${exp.example})\n`;
+      });
+      
+      content += `\n[응용 예문]\n`;
+      example_sentences.forEach((sent: string) => (content += `- ${sent}\n`));
+      
+      return content.replace(/\*+/g, ''); // Markdown Bold/Italic 제거
+    }
+
+    // 새로운 통합 형식 (grammer_and_structure)
+    if (explanation && explanation.grammar_and_structure) {
+      let content = `${explanation.overall_meaning}\n\n`;
+      content += `[문법과 문장 구조]\n${explanation.grammar_and_structure}\n`;
+      
+      content += `\n[응용 예문]\n`;
+      explanation.practical_examples.forEach((ex: any) => {
+        if (ex.title && ex.example?.korean && ex.example?.english) {
+          content += `- ${ex.title}: ${ex.example.korean} (${ex.example.english})\n`;
+        } else if (ex.example?.korean && ex.example?.english) {
+          content += `- ${ex.example.korean} (${ex.example.english})\n`;
+        }
+      });
+      return content.replace(/\*+/g, '');
+    }
+
+    // 초/중급 새로 추가된 형식
+    if (explanation && explanation.grammatical_breakdown) {
+      let content = `${explanation.overall_meaning}\n\n`;
+      content += `[문법 분석]\n`;
+      explanation.grammatical_breakdown.forEach((b: any) => {
+        content += `- ${b.grammar_point}: ${b.explanation} (결합 규칙: ${b.conjugation})\n`;
+      });
+      if (explanation.sentence_structure_analysis) {
+        content += `\n[문장 구조]\n${explanation.sentence_structure_analysis}\n`;
+      }
+      content += `\n[응용 예문]\n`;
+      explanation.practical_examples.forEach((ex: any) => {
+        if (ex.title && ex.example?.korean && ex.example?.english) {
+          content += `- ${ex.title}: ${ex.example.korean} (${ex.example.english})\n`;
+        } else if (ex.example?.korean && ex.example?.english) {
+          content += `- ${ex.example.korean} (${ex.example.english})\n`;
+        }
+      });
+      return content.replace(/\*+/g, '');
+    }
+
+    // 어떤 형식에도 맞지 않을 경우, 원본 객체를 문자열로 변환하여 반환
+    return JSON.stringify(data, null, 2);
+  };
+  
   // 로깅을 위한 setBackLink 래퍼 함수
   const updateBackLink = (newLink: string, reason: string) => {
     console.log(`[ULP_BACKLINK_TRACE] updateBackLink: Reason="${reason}", NewLink="${newLink}", UnitId="${unitId}"`);
@@ -140,25 +228,51 @@ export default function UnitPage() {
 
   // 단원의 제목(핵심 문장)에 대한 설명
   const unitKeySentenceExplanation: Record<string, { title: string; explanation: string; }> = {
-    // "저는 한국 사람이에요.": { // unit.제목이 이 문자열과 일치할 경우
-    //   title: "저는 한국 사람이에요.",
-    //   explanation: "이 문장은 자신을 소개할 때 사용하는 기본적인 표현입니다. '저'는 자신을 낮추어 부르는 말이고, '는'은 문장의 주제를 나타냅니다. '한국 사람'은 국적을, '이에요'는 명사 뒤에 붙어 '입니다'와 같이 서술하는 역할을 합니다. 이 문장에서는 주로 'N은/는' 토픽 조사와 'N이다' 서술격 조사의 활용을 배웁니다."
-    // }
+    "저는 한국 사람이에요.": { // unit.제목이 이 문자열과 일치할 경우
+      title: "저는 한국 사람이에요.",
+      explanation: "이 문장은 자신을 소개할 때 사용하는 기본적인 표현입니다. '저'는 자신을 낮추어 부르는 말이고, '는'은 문장의 주제를 나타냅니다. '한국 사람'은 국적을, '이에요'는 명사 뒤에 붙어 '입니다'와 같이 서술하는 역할을 합니다. 이 문장에서는 주로 'N은/는' 토픽 조사와 'N이다' 서술격 조사의 활용을 배웁니다."
+    }
     // 다른 unit.제목에 대한 설명을 추가할 수 있습니다.
   };
 
-  // TTS 함수 복원
-  const speakText = (text: string) => {
+  // TTS 함수 복원 및 개선 (lang 파라미터 추가)
+  const speakText = (text: string, lang: string = 'ko-KR') => {
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel(); // 진행 중인 음성 취소
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'ko-KR';
+      utterance.lang = lang; // 'ko-KR' 또는 'en-US' 등
       utterance.rate = 1.0;
       utterance.pitch = 1.0;
       window.speechSynthesis.speak(utterance);
     } else {
       alert('죄송합니다. 사용하시는 브라우저가 음성 합성을 지원하지 않습니다.');
       console.log('[ULP_DEBUG] Speech synthesis not supported');
+    }
+  };
+
+  // 한국어와 영어를 순차적으로 재생하는 새로운 함수
+  const speakSentencePair = (korean: string, english: string) => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel(); // 진행 중인 음성 취소
+
+      const koreanUtterance = new SpeechSynthesisUtterance(korean);
+      koreanUtterance.lang = 'ko-KR';
+      koreanUtterance.rate = 1.0;
+      koreanUtterance.pitch = 1.0;
+
+      const englishUtterance = new SpeechSynthesisUtterance(english);
+      englishUtterance.lang = 'en-US';
+      englishUtterance.rate = 1.0;
+      englishUtterance.pitch = 1.0;
+
+      // 한국어 음성이 끝나면 영어 음성을 재생
+      koreanUtterance.onend = () => {
+        window.speechSynthesis.speak(englishUtterance);
+      };
+
+      window.speechSynthesis.speak(koreanUtterance);
+    } else {
+      alert('죄송합니다. 사용하시는 브라우저가 음성 합성을 지원하지 않습니다.');
     }
   };
 
@@ -194,204 +308,126 @@ export default function UnitPage() {
     // fetchUnitDetails와 fetchNavigationInfo 함수를 useEffect 내부에 정의
     async function fetchNavigationInfo(currentUnitId: string) {
       try {
-        const response = await fetch(`/api/koreantraining/navigation/${currentUnitId}`);
-        if (!response.ok) {
-          throw new Error('네비게이션 정보 로딩 실패');
-        }
-        const data = await response.json();
+        const res = await fetch(`/api/koreantraining/navigation/${currentUnitId}`);
+        if (!res.ok) throw new Error('Failed to fetch navigation info');
+        const data = await res.json();
         setNavigationInfo(data);
-      } catch (err) {
-        console.error('[ULP_ERROR] Error fetching navigation info:', err);
-        setNavigationInfo(null); // 에러 발생 시 초기화
+      } catch (err: any) {
+        console.error("[ULP_ERROR] Fetching navigation info failed:", err);
+        // 에러가 발생해도 다른 기능은 계속 작동하도록 상태를 null로 유지
+        setNavigationInfo(null);
       }
     }
 
     async function fetchUnitDetails() {
-      console.log(`[ULP_DEBUG] fetchUnitDetails for unitId: ${unitId} - START`);
+      if (!unitId) return;
+      console.log(`[ULP_DEBUG] fetchUnitDetails called for unitId: ${unitId}`);
       setLoading(true);
       setError(null);
-      setUnit(null);
-      // backLink의 기본값을 /courses로 설정하고, unitId가 없을 경우에도 이 값을 유지하도록 함.
-      // unit 정보 로드 성공 시에만 아래에서 쿼리 파라미터 포함 링크로 업데이트.
-      updateBackLink('/courses', 'fetchUnitDetails_start'); 
-      setCombinedGrammar([]);
-      setAiUnitTitleExplanation(null);
-      setAiUnitTitleExplanationLoading(false);
-      setAiUnitTitleExplanationError(null);
-      setNavigationInfo(null); // 단원 정보 다시 가져올 때 네비게이션 정보 초기화
-
-      // 학습 완료 상태도 초기화
-      setIsCompleted(false);
-      
       try {
-        const response = await fetch(`/api/koreantraining/unit/${unitId}`, {
-          cache: 'no-store',
-          next: { revalidate: 0 }
-        });
-        console.log(`[ULP_DEBUG] Unit API response status for ${unitId}: ${response.status}`);
-        const data: UnitDetails | null = await response.json();
-        console.log(`[ULP_DEBUG] Unit data fetched for ${unitId}:`, data);
+        await fetchNavigationInfo(unitId);
 
+        const response = await fetch(`/api/koreantraining/unit/${unitId}`);
         if (!response.ok) {
-          if (response.status === 404) {
-            setError(`단원 정보(ID: ${unitId})를 찾을 수 없습니다.`);
-          } else {
-            setError(`단원 정보를 불러오는데 실패했습니다. (상태: ${response.status})`);
-          }
-          // updateBackLink('/courses', 'fetch error'); // 이미 시작 시 /courses로 설정됨
-        } else if (data) { // response.ok 이고 data가 존재할 때만 처리
-          setUnit(data);
+          const errorText = await response.text();
+          console.error(`[ULP_ERROR] Failed to fetch unit details. Status: ${response.status}, Response: ${errorText}`);
+          throw new Error(`서버에서 단원 정보를 불러오는 데 실패했습니다 (상태 코드: ${response.status})`);
+        }
+        
+        const data: UnitDetails = await response.json();
+        
+        if (!data) {
+          throw new Error("해당 ID의 단원을 찾을 수 없습니다.");
+        }
 
-          const repCourse = getRepresentativeCourseName(data.과목);
-          
-          if (repCourse) {
-            // "단계 목록" (예: 초급1, 초급2 리스트)으로 돌아가도록 링크를 수정합니다.
-            const newCalculatedLink = `/courses?course=${encodeURIComponent(repCourse)}`;
-            updateBackLink(newCalculatedLink, 'fetchUnitDetails_success_repCourse_valid_to_stage_list');
-          } else {
-            console.warn(`[ULP_WARN] Cannot create specific backLink for stage list. Original 과목: ${data.과목}, RepCourse: ${repCourse}. Defaulting to /courses.`);
-            updateBackLink('/courses', 'fetchUnitDetails_success_repCourse_invalid');
-          }
+        console.log("[ULP_DATA] Fetched unit data:", data);
+        setUnit(data);
+        
+        const repCourse = getRepresentativeCourseName(data.과목);
+        if (repCourse) {
+          const newLink = `/courses?course=${encodeURIComponent(repCourse)}&level=${encodeURIComponent(data.단계)}`;
+          updateBackLink(newLink, "fetchUnitDetails - repCourse found");
+        } else {
+          updateBackLink('/courses', "fetchUnitDetails - repCourse not found");
+        }
 
-          const grammarSet = new Set<string>();
-          const splitAndTrim = (str: string) => str.split(';').map(s => s.trim()).filter(s => s.length > 0);
-          if (data.문법 && typeof data.문법 === 'string') {
-            splitAndTrim(data.문법).forEach(g => grammarSet.add(g));
-          }
-          if (data.부가문법 && typeof data.부가문법 === 'string') {
-            splitAndTrim(data.부가문법).forEach(g => grammarSet.add(g));
-          }
-          const newCombinedGrammar = Array.from(grammarSet);
-          setCombinedGrammar(newCombinedGrammar);
+        const splitAndTrim = (str: string) => str.split(';').map(s => s.trim()).filter(s => s.length > 0);
+        
+        const grammarSet = new Set<string>();
+        if (data.문법 && data.문법.trim() !== '-') {
+          splitAndTrim(data.문법).forEach(item => grammarSet.add(item));
+        }
+        if (data.부가문법 && data.부가문법.trim() !== '-') {
+          splitAndTrim(data.부가문법).forEach(item => grammarSet.add(item));
+        }
+        setCombinedGrammar(Array.from(grammarSet));
 
-          // AI 제목 설명 로직 (data.제목이 있을 때만 실행)
-          if (data.제목 && !unitKeySentenceExplanation[data.제목]) {
-            if (!aiUnitTitleExplanation) {
-              setAiUnitTitleExplanationLoading(true);
-              setAiUnitTitleExplanationError(null);
-              console.log(`[ULP_DEBUG] AI Title Explanation for "${data.제목}" - START Loading`);
-              try {
-                const dbQueryTitle = encodeURIComponent(data.제목);
-                console.log(`[ULP_DEBUG] AI Title: Checking DB for "${dbQueryTitle}"`);
-                const dbResponse = await fetch(`/api/grammar-explanations/${dbQueryTitle}?lang=ko`);
-                console.log(`[ULP_DEBUG] AI Title: DB response status: ${dbResponse.status}`);
-                
-                if (dbResponse.ok) {
-                  const dbData = await dbResponse.json();
-                  if (dbData && dbData.explanation) {
-                    console.log(`[ULP_DEBUG] AI Title: Using explanation for "${data.제목}" from DB`);
-                    // [FIX] DB에서 받은 JSON 객체를 렌더링 가능한 문자열로 변환
-                    setAiUnitTitleExplanation(formatStructuredExplanation(dbData.explanation));
-                  } else {
-                    console.log(`[ULP_DEBUG] AI Title: Fetching from AI for "${data.제목}" (DB data missing explanation or null data)`);
-                    const aiResponse = await fetch('/api/generate-sentence-explanation', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        sentence: data.제목,
-                        unitLevel: data.단계,
-                        unitTopic: data.주제,
-                        unitVocabulary: data.어휘,
-                        speakingTask: data.말하기,
-                        unitGrammar: data.문법,
-                        unitAdditionalGrammar: data.부가문법,
-                        listeningTask: data.듣기,
-                        readingTask: data.읽기,
-                        writingTask: data.쓰기,
-                        unitId: parseInt(unitId)
-                      }),
-                    });
-                    console.log(`[ULP_DEBUG] AI Title: AI generation API response status: ${aiResponse.status}`);
-                    const result = await aiResponse.json();
-                    if (!aiResponse.ok) {
-                      throw new Error(result.error || result.details || 'AI 문장 분석 설명 생성 실패');
-                    }
-                    setAiUnitTitleExplanation(formatStructuredExplanation(result));
-                    console.log(`[ULP_DEBUG] AI Title: Fetched and set explanation from AI for "${data.제목}"`);
-                  }
-                } else if (dbResponse.status === 404) {
-                  console.log(`[ULP_DEBUG] AI Title: Fetching from AI for "${data.제목}" (DB returned 404)`);
-                  const aiResponse = await fetch('/api/generate-sentence-explanation', {
+        // --- 고급 레벨 주요 표현 AI 설명 로직 복원 ---
+        const predefinedExp = unitKeySentenceExplanation[data.제목];
+        if (predefinedExp) {
+            setAiUnitTitleExplanation(predefinedExp.explanation);
+        } else {
+            setAiUnitTitleExplanationLoading(true);
+            setAiUnitTitleExplanationError(null);
+            const isAdvanced = data.과목.startsWith('고급');
+
+            try {
+                const res = await fetch('/api/generate-grammar-explanation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                      sentence: data.제목,
-                      unitLevel: data.단계,
-                      unitTopic: data.주제,
-                      unitVocabulary: data.어휘,
-                      speakingTask: data.말하기,
-                      unitGrammar: data.문법,
-                      unitAdditionalGrammar: data.부가문법,
-                      listeningTask: data.듣기,
-                      readingTask: data.읽기,
-                      writingTask: data.쓰기,
-                      unitId: parseInt(unitId)
+                        grammarItem: data.제목,
+                        unitId: data.id,
+                        unitLevel: data.단계,
+                        isMainExpression: isAdvanced // 고급일 경우에만 true, 아니면 false
                     }),
-                  });
-                  console.log(`[ULP_DEBUG] AI Title: AI generation API response status: ${aiResponse.status}`);
-                  const result = await aiResponse.json();
-                  if (!aiResponse.ok) {
-                    throw new Error(result.error || result.details || 'AI 문장 분석 설명 생성 실패');
-                  }
-                  setAiUnitTitleExplanation(formatStructuredExplanation(result));
-                  console.log(`[ULP_DEBUG] AI Title: Fetched and set explanation from AI for "${data.제목}"`);
-                } else {
-                  const errorDetails = await dbResponse.json().catch(() => ({ error: '서버 응답 처리 실패' }));
-                  throw new Error(`AI 제목 설명 DB 조회 실패: ${dbResponse.status} - ${errorDetails.error || '알 수 없는 서버 오류'}`);
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || `AI 설명 생성 실패 (상태: ${res.status})`);
                 }
-              } catch (err: any) {
-                console.error('[ULP_ERROR] Error fetching AI sentence explanation:', err);
-                setAiUnitTitleExplanationError(err.message || 'AI 문장 분석 설명 로딩 중 오류 발생');
-              } finally {
+
+                const result = await res.json();
+                const formatted = formatStructuredExplanation(result);
+                setAiUnitTitleExplanation(formatted);
+                setGrammarExplanations(prev => ({ ...prev, [data.제목]: formatted }));
+            } catch (err: any) {
+                console.error('[ULP_ERROR] Fetching AI explanation for unit title failed:', err);
+                setAiUnitTitleExplanationError(err.message);
+            } finally {
                 setAiUnitTitleExplanationLoading(false);
-                console.log(`[ULP_DEBUG] AI Title Explanation for "${data.제목}" - END Loading`);
-              }
-            } else {
-              console.log(`[ULP_DEBUG] AI Title Explanation for "${data.제목}" already exists in state.`);
             }
-          }
-        } else if (!data && response.ok) { // response.ok 이지만 data가 null인 경우
-          setError(`단원 데이터(ID: ${unitId})가 비어있습니다.`);
-          // updateBackLink('/courses', 'response ok but no data'); // 이미 /courses로 설정됨
         }
+        // --- 로직 복원 끝 ---
+
       } catch (err: any) {
-        console.error('[ULP_ERROR] Error in fetchUnitDetails catch block:', err);
-        if (!error) {
-          setError(err.message || '단원 정보를 불러오는 중 알 수 없는 오류가 발생했습니다.');
-        }
-        // updateBackLink('/courses', 'outer catch error'); // 이미 /courses로 설정됨
+        console.error('[ULP_ERROR] An error occurred in fetchUnitDetails:', err);
+        setError(err.message || '알 수 없는 오류가 발생했습니다.');
       } finally {
         setLoading(false);
-        console.log(`[ULP_DEBUG] fetchUnitDetails for unitId: ${unitId} - END (loading: false)`);
       }
     }
 
-    if (unitId) {
-      fetchUnitDetails();
-      fetchNavigationInfo(unitId); // 단원 정보와 함께 네비게이션 정보도 요청
-    } else {
-      console.log('[ULP_DEBUG] No unitId present on mount/update.');
-      setLoading(false);
-      setError('유효한 단원 ID가 없습니다.');
-      setUnit(null);
-      setCombinedGrammar([]);
-      updateBackLink('/courses', 'useEffect_no_unitId');
-      setNavigationInfo(null); // unitId가 없을 때도 초기화
-      console.log('[ULP_DEBUG] useEffect - No unitId, backLink set to /courses.');
-    }
-  }, [unitId]); // 의존성 배열은 unitId만 포함
+    fetchUnitDetails();
+  }, [unitId]); // 의존성 배열에 unitId만 유지
 
   // [NEW] Automatically fetch existing grammar explanations on load
   useEffect(() => {
-    if (combinedGrammar.length > 0) {
-      const fetchInitialExplanations = async () => {
-        const initialExplanations: Record<string, string> = {};
-        for (const grammarItem of combinedGrammar) {
+    const fetchInitialExplanations = async () => {
+      if (combinedGrammar.length === 0) return;
+
+      console.log("[ULP_DEBUG] Fetching initial explanations for:", combinedGrammar);
+      const initialExplanations: Record<string, string> = {};
+      for (const grammarItem of combinedGrammar) {
+        // 먼저 기본 설명을 확인
+        if (predefinedGrammarDetails[grammarItem]) {
+          initialExplanations[grammarItem] = predefinedGrammarDetails[grammarItem].basicExplanation;
+        } else {
+          // 기본 설명이 없으면 DB에서 AI가 생성한 설명을 찾음
           try {
-            const dbQueryGrammarItem = encodeURIComponent(grammarItem);
-            // This fetch only gets existing data, it does not generate new explanations.
-            const response = await fetch(`/api/grammar-explanations/${dbQueryGrammarItem}?lang=ko`);
-            
+            const dbQueryGrammar = encodeURIComponent(grammarItem);
+            const response = await fetch(`/api/grammar-explanations/${dbQueryGrammar}?lang=ko`);
             if (response.ok) {
               const dbData = await response.json();
               if (dbData && dbData.explanation) {
@@ -400,189 +436,161 @@ export default function UnitPage() {
               }
             }
           } catch (error) {
-            console.error(`[ULP_ERROR] Failed to fetch initial explanation for ${grammarItem}:`, error);
+            console.error(`[ULP_ERROR] Error fetching initial explanation for ${grammarItem}:`, error);
           }
         }
-        if (Object.keys(initialExplanations).length > 0) {
-          setGrammarExplanations(prev => ({ ...prev, ...initialExplanations }));
-        }
-      };
-      fetchInitialExplanations();
-    }
-  }, [combinedGrammar]);
-
-  // 사용자의 기존 학습 완료 기록을 확인하는 useEffect
-  useEffect(() => {
-    const checkCompletionStatus = async () => {
-      if (!unitId) return;
-      try {
-        const response = await fetch('/api/progress');
-        if (response.ok) {
-          const completedLessons: { id: number }[] = await response.json();
-          const isDone = completedLessons.some(lesson => lesson.id === parseInt(unitId));
-          setIsCompleted(isDone);
-        }
-      } catch (error) {
-        console.error("Error fetching completion status:", error);
       }
+      setGrammarExplanations(initialExplanations);
+      console.log("[ULP_DEBUG] Initial explanations loaded:", initialExplanations);
     };
 
-    checkCompletionStatus();
-  }, [unitId]);
-
-  console.log(`[ULP_BACKLINK_TRACE] Rendering UnitPage for unitId: ${unitId}. Current backLink state: ${backLink}`);
+    fetchInitialExplanations();
+  }, [combinedGrammar]);
 
   const addWordToLog = (word: string) => {
-    setLearnedWordsLog(prevLog => {
-      const newLog = Array.from(new Set([...prevLog, word])); 
-      localStorage.setItem('learnedWordsLog', JSON.stringify(newLog));
-      return newLog;
-    });
+    const newLog = [...learnedWordsLog, word];
+    setLearnedWordsLog(newLog);
+    localStorage.setItem('learnedWordsLog', JSON.stringify(newLog));
   };
 
-  // AI 문법 설명 생성 함수
-  const fetchGrammarExplanation = async (grammarItem: string, currentUnitId: number, grammarType: 'grammar' | 'additional_grammar') => {
-    console.log(`[ULP_DEBUG] fetchGrammarExplanation for "${grammarItem}" - START`);
+  const fetchGrammarExplanation = async (grammarItem: string, currentUnitId: number) => {
+    // 이미 설명이 있거나 로딩 중이면 다시 호출하지 않음
+    if (grammarExplanations[grammarItem] || grammarExplanationLoading[grammarItem]) {
+      return;
+    }
+
+    console.log(`[ULP_AI_FETCH] Fetching explanation for "${grammarItem}"`);
     setGrammarExplanationLoading(prev => ({ ...prev, [grammarItem]: true }));
-    setGrammarExplanations(prev => ({ ...prev, [grammarItem]: '' })); // 이전 설명 초기화
     setGrammarExplanationError(prev => ({ ...prev, [grammarItem]: null }));
 
     try {
-      // 1. DB에서 먼저 확인
-      const dbQueryGrammarItem = encodeURIComponent(grammarItem);
-      const dbResponse = await fetch(`/api/grammar-explanations/${dbQueryGrammarItem}`);
-      
-      let explanationFromDb: string | null = null;
-      let useDbExplanation = false;
-
-      if (dbResponse.ok) {
-        const dbData = await dbResponse.json();
-        if (dbData && dbData.explanation) { // isApproved 체크는 추후에 (예: dbData.isApproved)
-            // DB에서 가져온 explanation은 AI가 생성한 순수 설명 부분이므로, 포맷팅 필요
-            console.log(`[ULP_DEBUG] DB data for ${grammarItem} (before formatting):`, dbData.explanation);
-            explanationFromDb = formatStructuredExplanation(dbData.explanation);
-            // 예: if (dbData.isApproved) { useDbExplanation = true; }
-            if(explanationFromDb) { // 포맷팅 결과가 유효할 때만 사용
-                useDbExplanation = true;
-            }
-        }
-      }
-
-      if (useDbExplanation && explanationFromDb) {
-        console.log(`[ULP_DEBUG] Using explanation from DB for ${grammarItem}`);
-        setGrammarExplanations(prev => ({ ...prev, [grammarItem]: explanationFromDb! }));
-      } else {
-        console.log(`[ULP_DEBUG] Fetching explanation from AI for ${grammarItem} (DB miss or not approved)`);
-        // 2. DB에 없으면 AI로 생성 요청
-        const aiResponse = await fetch('/api/generate-grammar-explanation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            grammarItem,
-            unitId: currentUnitId,
-            grammarType,
-            unitLevel: unit?.단계 // unit.단계(레벨) 정보 추가
-          })
-        });
-
-        if (!aiResponse.ok) {
-          const errorData = await aiResponse.json();
-          throw new Error(errorData.error || 'AI 설명 생성 API 호출 실패');
-        }
-
-        const aiData = await aiResponse.json();
-        
-        console.log(`[ULP_DEBUG] AI data for ${grammarItem} (before formatting):`, aiData);
-        const formattedExplanation = formatStructuredExplanation(aiData);
-        setGrammarExplanations(prev => ({ ...prev, [grammarItem]: formattedExplanation }));
-      }
-    } catch (err: any) {
-      console.error(`[ULP_ERROR] Error generating explanation for ${grammarItem}:`, err);
-      setGrammarExplanationError(prev => ({ ...prev, [grammarItem]: err.message || '설명 생성 중 오류 발생' }));
-    } finally {
-      setGrammarExplanationLoading(prev => ({ ...prev, [grammarItem]: false }));
-    }
-  };
-
-  // *** 새로 추가된 함수 ***
-  // AI가 생성한 구조화된 JSON 설명을 사람이 읽기 좋은 문자열로 변환합니다.
-  const formatStructuredExplanation = (data: any): string => {
-    // data 자체가 explanation 객체일 수도 있고, data.explanation에 있을 수도 있으므로 둘 다 확인합니다.
-    const explanation = data.explanation || data;
-    
-    if (!explanation || !explanation.usage_scenarios) {
-      return "AI가 생성한 설명의 형식이 올바르지 않습니다. 다시 시도해주세요.";
-    }
-
-    let formatted = `${explanation.introduction}\n\n`;
-
-    explanation.usage_scenarios.forEach((scenario: any, index: number) => {
-        formatted += `**[용법 ${index + 1}] ${scenario.title}**\n`;
-        formatted += `${scenario.explanation}\n`;
-        formatted += `*예문: ${scenario.example.korean}*  (${scenario.example.english})\n\n`;
-    });
-
-    if (explanation.conjugation_rules && explanation.conjugation_rules !== '없음') {
-        formatted += `**[결합 규칙]**\n${explanation.conjugation_rules}\n\n`;
-    }
-
-    if (explanation.common_mistakes && explanation.common_mistakes !== '없음') {
-        formatted += `**[자주 하는 실수]**\n${explanation.common_mistakes}\n`;
-    }
-
-    return formatted.trim();
-  }
-
-  // 백업 파일의 handleGenerateExamples 함수 로직 (어휘 예문 생성)
-  const handleGenerateExamples = async (word: string) => {
-    if (!unit) return; 
-
-    setAiActivityLoading(prev => ({ ...prev, [word]: true }));
-    setAiActivityError(prev => ({ ...prev, [word]: null }));
-
-    if (!learnedWordsLog.includes(word)) {
-      addWordToLog(word);
-    }
-
-    try {
-      const response = await fetch('/api/generate-activity', {
+      const response = await fetch('/api/generate-grammar-explanation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          wordData: { word }, 
-          activityType: 'sentence_creation', // 백업 파일에서는 sentence_creation으로 고정되어 있었음
-          grammarContext: unit.문법,
-          unitTitle: unit.제목,
-          unitVocabulary: unit.어휘, 
-          unitRelatedKeywords: unit.related_keywords, 
-          unitLevel: unit.단계 
+          grammarItem: grammarItem,
+          unitId: currentUnitId,
+          // 백엔드가 스스로 판단하므로 아래 정보들은 더 이상 필요 없음
+          // unitLevel: unit?.단계,
+          // isMainExpression: isAdvanced ? false : undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(`[ULP_ERROR] AI explanation fetch failed for "${grammarItem}":`, errorData.error);
+        throw new Error(errorData.error || `서버 오류 (${response.status})`);
+      }
+
+      const result = await response.json();
+      console.log(`[ULP_AI_RESULT] Explanation for "${grammarItem}":`, result);
+      
+      const formattedExplanation = formatStructuredExplanation(result);
+      
+      setGrammarExplanations(prev => ({ ...prev, [grammarItem]: formattedExplanation }));
+
+    } catch (err: any) {
+      console.error(`[ULP_ERROR] Error in fetchGrammarExplanation for "${grammarItem}":`, err);
+      setGrammarExplanationError(prev => ({ ...prev, [grammarItem]: err.message }));
+    } finally {
+      setGrammarExplanationLoading(prev => ({ ...prev, [grammarItem]: false }));
+    }
+  };
+
+  const handleGenerateExamples = async (prompt: string) => {
+    // 'prompt'를 키로 사용하도록 상태 업데이트
+    setAiActivityLoading(prev => ({ ...prev, [prompt]: true }));
+    setAiActivityError(prev => ({ ...prev, [prompt]: null }));
+    setGeneratedExamples(prev => ({ ...prev, [prompt]: [] }));
+
+    addWordToLog(prompt);
+
+    try {
+      const response = await fetch('/api/generate-examples', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt, // 'word' 대신 'prompt'를 사용
+          context: {
+            unitTopic: unit?.주제,
+            unitTitle: unit?.제목,
+            relatedWords: unit?.related_keywords
+          }
         }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || data.details || 'AI 예문 생성에 실패했습니다.');
+        throw new Error(data.error || 'AI 예문 생성에 실패했습니다.');
       }
-      
-      let examplesToShow: any[] = [];
-      if (data.generated_examples) {
-        examplesToShow = data.generated_examples;
-      } else {
-        Object.keys(data).forEach(key => {
-          if (key.startsWith('generated_examples_meaning_')) {
-            examplesToShow.push(...data[key]);
+
+      setGeneratedExamples(prev => ({ ...prev, [prompt]: data.examples }));
+    } catch (err: any) {
+      setAiActivityError(prev => ({ ...prev, [prompt]: err.message }));
+    } finally {
+      setAiActivityLoading(prev => ({ ...prev, [prompt]: false }));
+    }
+  };
+
+  // --- 새로운 통합 TTS 핸들러 ---
+  const playNextInQueue = () => {
+    if (utteranceQueueRef.current.length > 0) {
+      const utterance = utteranceQueueRef.current.shift();
+      if (utterance) {
+        // 현재 재생이 중지되거나 다른 항목으로 넘어간 경우 큐를 중단
+        if (!ttsState.id) {
+          utteranceQueueRef.current = [];
+          return;
+        }
+        utterance.onend = playNextInQueue;
+        window.speechSynthesis.speak(utterance);
+      }
+    } else {
+      setTtsState({ id: null, isPlaying: false, isPaused: false }); // 모든 큐 재생 완료
+    }
+  };
+
+  const handleTTS = (id: string, ...texts: string[]) => {
+    const { id: currentId, isPlaying } = ttsState;
+
+    if (isPlaying && currentId === id) {
+      // 현재 재생 중인 것을 일시정지
+      window.speechSynthesis.pause();
+      setTtsState({ id, isPlaying: false, isPaused: true });
+    } else if (!isPlaying && currentId === id) { 
+      // 현재 일시정지된 것을 재개
+      window.speechSynthesis.resume();
+      setTtsState({ id, isPlaying: true, isPaused: false });
+    } else {
+      // 다른 것을 재생하거나 새로 시작
+      window.speechSynthesis.cancel();
+      utteranceQueueRef.current = [];
+
+      const languages = ['ko-KR', 'en-US'];
+      texts.forEach((text, index) => {
+        if (!text) return;
+
+        const lang = languages[index] || 'ko-KR';
+        
+        // 긴 텍스트를 문장 또는 적절한 단위로 분할 (chunking)
+        const chunks = text.match(/[^.!?]+[.!?]*/g) || [text];
+        
+        chunks.forEach(chunk => {
+          if (chunk.trim()) {
+            const utterance = new SpeechSynthesisUtterance(chunk);
+            utterance.lang = lang;
+            utteranceQueueRef.current.push(utterance);
           }
         });
-      }
-      const updatedExamples = { ...generatedExamples, [word]: examplesToShow };
-      setGeneratedExamples(updatedExamples);
-    } catch (err: any) {
-      setAiActivityError(prev => ({ ...prev, [word]: err.message || '예문 생성 중 오류 발생' }));
-    } finally {
-      setAiActivityLoading(prev => ({ ...prev, [word]: false }));
+      });
+      
+      setTtsState({ id, isPlaying: true, isPaused: false });
+      playNextInQueue();
     }
   };
 
@@ -609,7 +617,10 @@ export default function UnitPage() {
   // unit.과목에서 마지막 숫자와 공백 제거 (예: "세종학당 한국어1" -> "세종학당 한국어")
   const courseName = unit.과목.replace(/\s*\d+$/, '');
 
-  const currentKeySentenceExplanation = unitKeySentenceExplanation[unit.제목] || { title: unit.제목, explanation: aiUnitTitleExplanation || "AI 설명을 생성 중이거나, 미리 정의된 설명이 없습니다." };
+  const currentKeySentenceExplanation = unitKeySentenceExplanation[unit.제목] || { title: unit.제목, explanation: "AI 설명을 생성 중이거나, 미리 정의된 설명이 없습니다." };
+
+  const predefinedExplanation = currentKeySentenceExplanation.explanation;
+  const explanationText = predefinedExplanation || aiUnitTitleExplanation;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -619,15 +630,15 @@ export default function UnitPage() {
             <div className="flex items-center">
               <Link href={backLink} className="flex items-center text-blue-600 hover:text-blue-700 transition-colors">
                 <ArrowLeft size={20} className="mr-2" />
-                단계로 돌아가기
+                과목으로 돌아가기
               </Link>
             </div>
             <div className="text-lg font-semibold text-gray-700 truncate" title={`${unit.과목} - ${unit.단계} / ${unit.주제}`}>
-                {`${unit.단원명 || unit.주제}`}
+                {`${unit.제목 || unit.주제}`}
             </div>
             {/* 이전/다음 단원 네비게이션 버튼 영역 */}
             <div className="flex items-center space-x-2">
-              {navigationInfo?.prevUnit ? (
+             {navigationInfo?.prevUnit ? (
                 <Link
                   href={`/learn/${navigationInfo.prevUnit.id}`}
                   className="flex items-center text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-md transition-colors"
@@ -642,7 +653,7 @@ export default function UnitPage() {
                   <span>이전</span>
                 </div>
               )}
-              {navigationInfo?.nextUnit ? (
+             {navigationInfo?.nextUnit ? (
                 <Link
                   href={`/learn/${navigationInfo.nextUnit.id}`}
                   className="flex items-center text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-md transition-colors"
@@ -663,7 +674,7 @@ export default function UnitPage() {
       </header>
 
       <main className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
-        {/* 단원 정보 헤더 (현재 UI 유지) */}
+        {/* 단원 정보 헤더 */}
         <div className="bg-blue-600 text-white p-6 rounded-lg shadow-md mb-8">
           <h1 className="text-3xl font-bold mb-2">{courseName} - {unit.단계}</h1>
           <p className="text-xl mb-1">주제: {unit.주제}</p>
@@ -678,164 +689,226 @@ export default function UnitPage() {
           </h2>
 
           {/* 주요 표현 설명 */}
-          {unit.제목 && (
-            <div className="mb-8">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex justify-between items-start">
-                  <h3 className="font-bold text-lg text-yellow-800 mb-2">
-                    주요 표현: {unit.제목}
-                  </h3>
-                  <button 
-                    onClick={() => {
-                      const predefined = unitKeySentenceExplanation[unit.제목]?.explanation;
-                      const ai = aiUnitTitleExplanation;
-                      const explanation = predefined || ai;
-                      const textToSpeak = `${unit.제목}. ${explanation || ''}`;
-                      speakText(textToSpeak);
-                    }} 
-                    className="text-yellow-600 hover:text-yellow-800 transition-colors"
-                    disabled={aiUnitTitleExplanationLoading}
-                    title="주요 표현과 설명 듣기"
-                  >
-                    <Volume2 size={20} />
-                  </button>
+          <div className="mt-8 mb-8 p-6 rounded-lg bg-yellow-50 border border-yellow-200">
+            <div className="flex justify-between items-start">
+              <div className="flex-grow pr-4">
+                <h3 className="text-xl font-bold text-yellow-800 mb-3">
+                  주요 표현: {unit.제목}
+                </h3>
+                <div className="flex items-center">
+                    <p className="text-gray-700 whitespace-pre-wrap flex-grow">
+                    {renderExplanation(
+                        unitKeySentenceExplanation[unit.제목]?.explanation,
+                        aiUnitTitleExplanation,
+                        aiUnitTitleExplanationLoading,
+                        aiUnitTitleExplanationError
+                    )}
+                    </p>
+                    {(aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation) && !aiUnitTitleExplanationLoading && (
+                    <button 
+                        onClick={() => handleTTS('main_explanation', aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation || '')} 
+                        className="text-yellow-600 hover:text-yellow-800 transition-colors ml-4 self-center"
+                        title="설명 듣기"
+                    >
+                        {ttsState.isPlaying && ttsState.id === 'main_explanation' ? <PauseCircle size={22} /> : <Volume2 size={22} />}
+                    </button>
+                    )}
                 </div>
-                {renderExplanation(
-                  unitKeySentenceExplanation[unit.제목]?.explanation,
-                  aiUnitTitleExplanation,
-                  aiUnitTitleExplanationLoading,
-                  aiUnitTitleExplanationError,
-                )}
               </div>
             </div>
-          )}
+          </div>
 
           {/* 세부 문법 항목 */}
           {combinedGrammar.length > 0 && (
             <div className="space-y-6">
-              {combinedGrammar.map((grammarItem) => (
-                <div key={grammarItem} className="border-t border-gray-200 pt-6">
-                  <h3 className="font-semibold text-gray-700 text-lg mb-3">
+              {combinedGrammar.map((grammarItem) => {
+                const itemId = `grammar_${grammarItem}`;
+                return (
+                <div key={grammarItem} className="p-6 rounded-lg bg-yellow-50 border border-yellow-200">
+                  <h3 className="text-xl font-bold text-yellow-800 mb-3">
                     문법: {grammarItem}
                   </h3>
-                  {grammarExplanations[grammarItem] ? (
-                    <div className="mt-3 p-3 bg-indigo-50 border border-indigo-200 rounded-md text-base text-gray-700 whitespace-pre-wrap">
-                      <div className="flex justify-between items-center mb-1">
-                         <p className="font-semibold">AI 생성 설명:</p>
+                  <div className="flex items-center">
+                    <p className="text-gray-700 whitespace-pre-wrap flex-grow">
+                      {grammarExplanationLoading[grammarItem] ? '...' : grammarExplanations[grammarItem] || '...'}
+                    </p>
+                    {grammarExplanations[grammarItem] && !grammarExplanationLoading[grammarItem] && (
                          <button 
-                          onClick={() => speakText(grammarExplanations[grammarItem])}
-                          className="p-1 rounded-full hover:bg-indigo-200 text-indigo-600 transition-colors flex-shrink-0"
-                          title="AI 생성 설명 듣기"
+                            onClick={() => handleTTS(itemId, grammarExplanations[grammarItem] || '')} 
+                            className="text-yellow-600 hover:text-yellow-800 transition-colors ml-4 self-center"
+                            title="설명 듣기"
                         >
-                          <Volume2 size={18} />
+                            {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={22} /> : <Volume2 size={22} />}
                         </button>
-                      </div>
-                      {grammarExplanations[grammarItem]}
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => fetchGrammarExplanation(grammarItem, parseInt(unit.id), 'grammar')}
-                        disabled={grammarExplanationLoading[grammarItem]}
-                        className="mt-2 px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-md hover:bg-indigo-600 disabled:bg-indigo-300 transition-colors flex items-center"
-                      >
-                        <Lightbulb size={16} className="mr-2" /> AI 설명 보기
-                      </button>
-                      {grammarExplanationLoading[grammarItem] && <p className="text-sm text-indigo-600 mt-2">AI 설명을 불러오는 중...</p>}
-                      {grammarExplanationError[grammarItem] && <p className="text-sm text-red-500 mt-2">오류: {grammarExplanationError[grammarItem]}</p>}
-                    </>
-                  )}
+                    )}
+                  </div>
+
+
+                  {/* AI 설명 요청 버튼 */}
+                  <button 
+                    onClick={() => fetchGrammarExplanation(grammarItem, parseInt(unitId))}
+                    disabled={!unitId || grammarExplanationLoading[grammarItem]}
+                    className="mt-4 w-full text-left p-2 rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500"
+                  >
+                    AI로 더 자세한 설명 보기
+                  </button>
                 </div>
-              ))}
+              )})}
             </div>
           )}
         </div>
+        
+        {/* --- 듣고 말하기와 읽기 연습 섹션 --- */}
+        <section className="bg-white p-6 rounded-lg shadow-md mb-8">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-5 flex items-center">
+            <BookText size={26} className="mr-3 text-indigo-500" /> 듣고 말하기와 읽기 연습
+          </h2>
 
-        {/* 어휘 연습 섹션 */}
-        {unit.어휘 && unit.어휘.trim().length > 0 && (
-          <section className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-5 flex items-center">
-              <BookText size={26} className="mr-3 text-indigo-500" /> 듣고 말하기와 읽기 연습
-            </h2>
-            {(unit.어휘.split(/[,、;]+/).map(word => word.trim()).filter(word => word.length > 0).map((word, idx) => (
-              <div 
-                key={idx} 
-                className="mb-4 p-3 border border-gray-300 rounded-md bg-white shadow-sm" 
-              >
+          {/* 주제에 대한 AI 예문 생성 섹션 */}
+          <div className="p-4 border rounded-lg mb-6 bg-indigo-50">
+            <div className="flex items-center justify-between">
+              <span className="text-lg font-medium text-gray-800">{unit.주제}</span>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handleGenerateExamples(unit.주제)}
+                  disabled={aiActivityLoading[unit.주제]}
+                  className="px-3 py-1.5 text-sm font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-wait transition-colors flex items-center"
+                >
+                  <Lightbulb size={14} className="mr-1.5" />
+                  AI 예문 보기
+                </button>
+              </div>
+            </div>
+            {aiActivityLoading[unit.주제] && (
+              <div className="mt-3 text-center text-sm text-gray-500">AI 예문을 생성하는 중...</div>
+            )}
+            {aiActivityError[unit.주제] && (
+              <div className="mt-3 text-sm text-red-500 bg-red-50 p-3 rounded-md">
+                <strong>오류:</strong> {aiActivityError[unit.주제]}
+              </div>
+            )}
+            {generatedExamples[unit.주제] && generatedExamples[unit.주제].length > 0 && (
+              <div className="mt-4 pt-3 border-t border-gray-200">
+                <ul className="space-y-3">
+                  {generatedExamples[unit.주제].map((ex: any, i: number) => {
+                    const itemId = `topic_ex_${i}`;
+                    let sentence = '';
+                    let translation = '';
+
+                    if (typeof ex === 'object' && ex !== null) {
+                      sentence = ex.korean || ex.sentence || ex.expression || ex.korean_sentence || JSON.stringify(ex);
+                      translation = ex.english || ex.translation || ex.english_translation || '';
+                    } else {
+                      sentence = String(ex);
+                    }
+
+                    return (
+                      <li key={i} className="flex items-start p-2 rounded-md hover:bg-gray-100">
+                        <span className="mr-2 text-purple-500 pt-1">&#8226;</span>
+                        <div className="flex-grow">
+                          <p className="text-gray-800">{sentence}</p>
+                          {translation && (
+                            <p className="text-gray-500">({translation})</p>
+                          )}
+                        </div>
+                        {translation && (
+                          <button onClick={() => handleTTS(itemId, sentence, translation)} className="ml-2 p-1 text-gray-500 hover:text-gray-800 transition-colors self-center" title="한국어와 영어 듣기">
+                            {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={18} /> : <Volume2 size={18} />}
+                          </button>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* 어휘 목록 섹션 복원 */}
+          <div className="space-y-4">
+            {(unit.어휘 || '').split(';').map(word => word.trim()).filter(Boolean).map(word => (
+              <div key={word} className="p-4 border rounded-lg transition-all duration-300 ease-in-out hover:shadow-md hover:border-indigo-300">
                 <div className="flex items-center justify-between">
-                  <p className="text-gray-700 font-medium text-lg">{word}</p>
-                  <div>
-                    <button 
-                        onClick={() => speakText(word)} 
-                        className="p-2 rounded-full hover:bg-sky-100 text-sky-500 transition-colors mr-1"
-                        title={`${word} 듣기`}
+                  <span className="text-lg font-medium text-gray-800">{word}</span>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => handleGenerateExamples(word)}
+                      disabled={aiActivityLoading[word]}
+                      className="px-3 py-1.5 text-sm font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-wait transition-colors flex items-center"
                     >
-                        <Volume2 size={18} />
-                    </button>
-                    <button 
-                        onClick={() => handleGenerateExamples(word)}
-                        disabled={aiActivityLoading[word]}
-                        className="px-4 py-2 bg-indigo-500 text-white text-sm font-medium rounded-md hover:bg-indigo-600 disabled:bg-indigo-300 transition-colors flex items-center"
-                    >
-                        <Lightbulb size={16} className="mr-2" /> AI 예문 보기
+                      <Lightbulb size={14} className="mr-1.5" />
+                      AI 예문 보기
                     </button>
                   </div>
                 </div>
                 {aiActivityLoading[word] && (
-                  <p className="text-xs text-sky-600 mt-1.5">AI 예문을 불러오는 중...</p>
+                  <div className="mt-3 text-center text-sm text-gray-500">AI 예문을 생성하는 중...</div>
                 )}
                 {aiActivityError[word] && (
-                  <p className="text-xs text-red-500 mt-1.5">오류: {aiActivityError[word]}</p>
+                  <div className="mt-3 text-sm text-red-500 bg-red-50 p-3 rounded-md">
+                    <strong>오류:</strong> {aiActivityError[word]}
+                  </div>
                 )}
                 {generatedExamples[word] && generatedExamples[word].length > 0 && (
-                  <div className="mt-2 space-y-1 text-base text-gray-700">
-                    {generatedExamples[word].map((exampleObj: any, exIdx: number) => (
-                      <div key={exIdx} className="py-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-start flex-grow">
-                            <span className="mr-1.5 text-sky-500 flex-shrink-0">&bull;</span> 
-                            <span className="flex-grow">{exampleObj.korean_sentence}</span>
-                          </div>
-                          <button 
-                            onClick={() => speakText(exampleObj.korean_sentence)}
-                            className="p-1 rounded-full hover:bg-sky-100 text-sky-500 transition-colors ml-2 flex-shrink-0"
-                            title="예문 듣기"
-                          >
-                            <Volume2 size={18} />
-                          </button>
-                        </div>
-                        {exampleObj.english_translation && (
-                          <p className="ml-5 text-gray-500 text-sm mt-0.5">
-                            ({exampleObj.english_translation})
-                          </p>
-                        )}
-                      </div>
-                    ))}
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    <ul className="space-y-3">
+                      {generatedExamples[word].map((ex: any, i: number) => {
+                        const itemId = `vocab_ex_${word}_${i}`;
+                        let sentence = '';
+                        let translation = '';
+
+                        if (typeof ex === 'object' && ex !== null) {
+                          sentence = ex.korean || ex.sentence || ex.expression || ex.korean_sentence || JSON.stringify(ex);
+                          translation = ex.english || ex.translation || ex.english_translation || '';
+                        } else {
+                          sentence = String(ex);
+                        }
+
+                        return (
+                          <li key={i} className="flex items-start p-2 rounded-md hover:bg-gray-100">
+                            <span className="mr-2 text-purple-500 pt-1">&#8226;</span>
+                            <div className="flex-grow">
+                              <p className="text-gray-800">{sentence}</p>
+                              {translation && (
+                                <p className="text-gray-500">({translation})</p>
+                              )}
+                            </div>
+                            {translation && (
+                              <button onClick={() => handleTTS(itemId, sentence, translation)} className="ml-2 p-1 text-gray-500 hover:text-gray-800 transition-colors self-center" title="한국어와 영어 듣기">
+                                {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={18} /> : <Volume2 size={18} />}
+                              </button>
+                            )}
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
                 )}
               </div>
-            )))}
-            {unit.related_keywords && unit.related_keywords.length > 0 && (
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <h3 className="text-md font-semibold text-gray-700 mb-2">연관 키워드</h3>
-                <div className="flex flex-wrap gap-2">
-                  {unit.related_keywords.map((keyword, index) => (
-                    <div key={index} className="flex items-center bg-gray-100 p-2 rounded-md shadow-sm">
-                      <span className="text-sm text-gray-600">{keyword}</span>
-                      <button
-                        onClick={() => speakText(keyword)}
-                        className="ml-2 p-1 text-gray-500 hover:text-gray-700"
-                        title={`${keyword} 듣기`}
-                      >
-                        <Volume2 size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+            ))}
+          </div>
+
+          {/* 관련 키워드 */}
+          {unit.related_keywords && unit.related_keywords.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <h3 className="text-md font-semibold text-gray-700 mb-2">연관 키워드</h3>
+              <div className="flex flex-wrap gap-2">
+                {unit.related_keywords.map((keyword, index) => (
+                  <div key={index} className="flex items-center bg-gray-100 p-2 rounded-md shadow-sm">
+                    <span className="text-sm text-gray-600">{keyword}</span>
+                    <button
+                      onClick={() => handleTTS(`keyword_${index}`, keyword)}
+                      className="ml-2 p-1 text-gray-500 hover:text-gray-700"
+                      title={`${keyword} 듣기`}
+                    >
+                      {ttsState.isPlaying && ttsState.id === `keyword_${index}` ? <PauseCircle size={16} /> : <Volume2 size={16} />}
+                    </button>
+                  </div>
+                ))}
               </div>
-            )}
-          </section>
-        )}
+            </div>
+          )}
+        </section>
 
         {learnedWordsLog.length > 0 && (
           <div className="mt-12 p-6 border border-gray-200 rounded-lg bg-gray-50">
@@ -852,56 +925,8 @@ export default function UnitPage() {
             </div>
           </div>
         )}
-
-        {/* 학습 완료 버튼 및 네비게이션 */}
-        <div className="mt-16 bg-white p-6 rounded-lg shadow-md">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-            
-            {/* 이전 단원 */}
-            <div className="w-full md:w-1/3 text-center md:text-left">
-              {navigationInfo?.prevUnit ? (
-                <Link href={`/learn/${navigationInfo.prevUnit.id}`} className="group inline-flex flex-col items-center md:items-start transition-opacity hover:opacity-80">
-                  <span className="text-sm text-gray-500">이전 단원</span>
-                  <span className="font-semibold text-gray-800 flex items-center gap-2">
-                    <ChevronLeft size={20} className="transition-transform group-hover:-translate-x-1" />
-                    {navigationInfo.prevUnit.title}
-                  </span>
-                </Link>
-              ) : <div className="h-10"></div>}
-            </div>
-
-            {/* 학습 완료 버튼 */}
-            <div className="w-full md:w-1/3 flex justify-center">
-              <button
-                onClick={handleComplete}
-                disabled={isCompleted || isSubmitting}
-                className="px-8 py-3 bg-green-600 text-white font-bold rounded-lg shadow-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all transform hover:scale-105"
-              >
-                {isCompleted ? '✔️ 학습 완료됨' : (isSubmitting ? '저장 중...' : '학습 완료로 표시')}
-              </button>
-            </div>
-
-            {/* 다음 단원 */}
-            <div className="w-full md:w-1/3 text-center md:text-right">
-              {navigationInfo?.nextUnit ? (
-                <Link href={`/learn/${navigationInfo.nextUnit.id}`} className="group inline-flex flex-col items-center md:items-end transition-opacity hover:opacity-80">
-                  <span className="text-sm text-gray-500">다음 단원</span>
-                  <span className="font-semibold text-gray-800 flex items-center gap-2">
-                    {navigationInfo.nextUnit.title}
-                    <ChevronRight size={20} className="transition-transform group-hover:translate-x-1" />
-                  </span>
-                </Link>
-              ) : <div className="h-10"></div>}
-            </div>
-          </div>
-        </div>
       </main>
     </div>
   );
 }
 
-// ActivitySection 컴포넌트는 이 수정으로 인해 사용되지 않으므로 주석 처리 또는 삭제 가능
-/*
-interface ActivitySectionProps { ... }
-const ActivitySection: React.FC<ActivitySectionProps> = ({ ... }) => { ... };
-*/

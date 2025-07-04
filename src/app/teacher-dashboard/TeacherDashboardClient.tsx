@@ -167,13 +167,16 @@ export default function TeacherDashboardClient() {
   const loadQuestions = async () => {
     try {
       const response = await fetch('/api/questions?isTeacher=true')
-      const data = await response.json()
       
-      if (data.success) {
-        setQuestions(data.questions)
-      } else {
-        console.error('질문 로딩 실패:', data.error)
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('질문 로딩 실패:', errorData.error)
+        return
       }
+      
+      const data = await response.json()
+      console.log('Loaded questions:', data)
+      setQuestions(data)
     } catch (error) {
       console.error('질문 로딩 오류:', error)
     }
@@ -182,6 +185,8 @@ export default function TeacherDashboardClient() {
   const handleAnswerSubmit = async (questionId: number) => {
     if (!answerText.trim() || submittingAnswer) return
 
+    console.log('Submitting answer for question ID:', questionId)
+    console.log('Selected question:', selectedQuestion)
     setSubmittingAnswer(true)
     
     try {
@@ -309,6 +314,31 @@ export default function TeacherDashboardClient() {
         </div>
       </div>
 
+      {/* 관리 도구 섹션 */}
+      <div className="card mb-8">
+        <h2 className="text-xl font-semibold text-korean-800 mb-4">🛠️ 관리 도구</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Link
+            href="/manage-idioms"
+            className="p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors text-center"
+          >
+            <div className="text-3xl mb-2">📝</div>
+            <div className="font-semibold text-blue-800">관용구 생성</div>
+            <div className="text-sm text-blue-600">새로운 관용구와 예문을 생성합니다</div>
+          </Link>
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center opacity-50">
+            <div className="text-3xl mb-2">📚</div>
+            <div className="font-semibold text-gray-600">속담 관리</div>
+            <div className="text-sm text-gray-500">곧 제공 예정</div>
+          </div>
+          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg text-center opacity-50">
+            <div className="text-3xl mb-2">🎯</div>
+            <div className="font-semibold text-gray-600">문제 관리</div>
+            <div className="text-sm text-gray-500">곧 제공 예정</div>
+          </div>
+        </div>
+      </div>
+
       {/* 사용자 관리 섹션 */}
       <div className="card mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
@@ -385,31 +415,30 @@ export default function TeacherDashboardClient() {
                       <div className="text-xs font-bold">{user.current_level || '미설정'}</div>
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        <button
+                      <div className="flex items-center space-x-2">
+                        <button 
                           onClick={() => handleUserStatusChange(user.id, user.status)}
-                          disabled={userActionLoading[user.id]}
-                          className={`px-3 py-1 text-xs rounded-md flex items-center transition-colors
+                          className={`px-3 py-1 text-sm font-semibold rounded-full flex items-center justify-center transition-opacity
                             ${user.status === 'active' 
-                              ? 'bg-red-500 text-white hover:bg-red-600'
-                              : 'bg-green-500 text-white hover:bg-green-600'}
+                              ? 'bg-red-100 text-red-700 hover:bg-red-200' 
+                              : 'bg-green-100 text-green-700 hover:bg-green-200'}
                             ${userActionLoading[user.id] ? 'opacity-50 cursor-not-allowed' : ''}
                           `}
+                          disabled={userActionLoading[user.id]}
                         >
                           {userActionLoading[user.id] ? (
-                            '처리중...'
-                          ) : user.status === 'active' ? (
-                            <><XCircle size={14} className="mr-1" /> 비활성화</>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
                           ) : (
-                            <><CheckCircle size={14} className="mr-1" /> 활성화</>
+                            user.status === 'active' ? 
+                              <><XCircle className="w-4 h-4 mr-1" /> 비활성화</> : 
+                              <><CheckCircle className="w-4 h-4 mr-1" /> 활성화</>
                           )}
                         </button>
-                        <button
+                        <button 
                           onClick={() => openLevelModal(user)}
-                          className="p-1.5 text-gray-500 hover:bg-gray-200 rounded-md transition-colors"
-                          aria-label="레벨 수정"
+                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full"
                         >
-                          <Edit size={14} />
+                          <Edit className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

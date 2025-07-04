@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { createAuthClient } from '@/utils/supabase/server'
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@/utils/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
     const cookieStore = cookies()
-    const supabase = createAuthClient(cookieStore)
+    const supabase = createClient(cookieStore)
 
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -27,10 +27,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    // 2. 교사임이 확인되면, 서비스 키를 사용하여 모든 사용자 정보를 가져옴
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_AUTH_SUPABASE_URL!,
-      process.env.AUTH_SUPABASE_SERVICE_ROLE_KEY!
+    // 관리자 클라이언트를 사용하여 모든 사용자 정보를 가져옵니다.
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
     const { data: users, error: usersError } = await supabaseAdmin

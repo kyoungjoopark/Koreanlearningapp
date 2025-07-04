@@ -97,7 +97,7 @@ export default function HomePage() {
         
         {/* 본문 콘텐츠 */}
         <div className="px-4 md:px-10">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          <h1 className="text-2xl font-bold text-gray-800 mb-1">
             안녕하세요, {user?.user_metadata?.nickname || user?.email?.split('@')[0]}님!
           </h1>
           <p className="text-gray-600 mb-12">무엇을 학습해볼까요?</p>
