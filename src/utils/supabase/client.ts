@@ -9,6 +9,12 @@ export function createClient() {
     if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
       return createBrowserClient('https://dummy.supabase.co', 'dummy-key');
     } else {
+      // 런타임에 브라우저에서 실행될 때 명확한 에러 표시
+      if (typeof window !== 'undefined') {
+        console.error('❌ Supabase environment variables are missing!');
+        console.error('Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your Render dashboard.');
+        alert('Configuration Error: Please contact the administrator. Missing Supabase environment variables.');
+      }
       throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables');
     }
   }
