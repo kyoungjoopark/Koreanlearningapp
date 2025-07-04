@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, signUp, isTeacher } from '@/lib/auth'
 import Image from 'next/image'
 import boyGirlImage from '@/assets/boy_girl.png' // 이미지를 직접 import 합니다.
 
-export default function AuthPage() {
+function AuthContent() {
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -339,5 +339,13 @@ export default function AuthPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={<div className="container mx-auto px-4 py-8"><div className="max-w-md mx-auto"><div className="text-center">로딩 중...</div></div></div>}>
+      <AuthContent />
+    </Suspense>
   )
 } 
