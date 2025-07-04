@@ -9,9 +9,34 @@ export const createClient = (request: NextRequest) => {
     },
   })
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    // 빌드 시점에는 더미 클라이언트를 반환
+    if (process.env.NODE_ENV === 'production') {
+      const supabase = createServerClient('https://dummy.supabase.co', 'dummy-key', {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            // 더미 구현
+          },
+          remove(name: string, options: CookieOptions) {
+            // 더미 구현
+          },
+        },
+      });
+      return { supabase, response };
+    } else {
+      throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY environment variables');
+    }
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         get(name: string) {
