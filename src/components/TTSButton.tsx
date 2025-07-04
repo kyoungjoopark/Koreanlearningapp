@@ -18,80 +18,99 @@ export default function TTSButton({
 }: TTSButtonProps) {
   const [isPlaying, setIsPlaying] = useState(false)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
+  const [isSupported, setIsSupported] = useState(false)
 
   useEffect(() => {
-    const loadVoices = () => {
-      const availableVoices = window.speechSynthesis.getVoices();
-      if (availableVoices.length > 0) {
-        setVoices(availableVoices);
-        // 음성 목록이 로드되면 더 이상 onvoiceschanged 이벤트를 수신할 필요가 없을 수 있습니다.
-        // 하지만 동적으로 음성이 추가/제거되는 경우를 대비해 유지할 수 있습니다.
-      }
-    };
+    // 브라우저 환경에서만 실행
+    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+      setIsSupported(true);
+      
+      const loadVoices = () => {
+        try {
+          const availableVoices = window.speechSynthesis.getVoices();
+          if (availableVoices.length > 0) {
+            setVoices(availableVoices);
+          }
+        } catch (error) {
+          console.error("Error loading voices:", error);
+        }
+      };
 
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+      loadVoices();
 
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-      // 컴포넌트 언마운트 시 재생 중인 음성 중지
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-      }
-    };
+      return () => {
+        try {
+          window.speechSynthesis.onvoiceschanged = null;
+          // 컴포넌트 언마운트 시 재생 중인 음성 중지
+          if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+          }
+        } catch (error) {
+          console.error("Error cleaning up TTS:", error);
+        }
+      };
+    } else {
+      console.log("Speech Synthesis API not supported");
+      setIsSupported(false);
+    }
   }, []);
 
   const handleToggleSpeech = () => {
-    if (isPlaying) {
-      window.speechSynthesis.cancel();
-      setIsPlaying(false);
-    } else {
-      if (!text || voices.length === 0) {
-        // 음성 목록이 아직 로드되지 않았을 수 있습니다.
-        // 사용자에게 잠시 후 다시 시도하라는 피드백을 줄 수 있습니다.
-        console.warn("Voices not loaded yet or text is empty.");
-        return;
-      }
+    if (!isSupported) {
+      alert('죄송합니다. 사용하시는 환경에서 음성 합성을 지원하지 않습니다.');
+      return;
+    }
 
-      if (!('speechSynthesis' in window)) {
-        alert('죄송합니다. 사용하시는 브라우저가 음성 합성을 지원하지 않습니다.');
-        return;
-      }
-
-      window.speechSynthesis.cancel();
-
-      const cleanedText = text.replace(/(\*\*|\*|\[.*?\])/g, '').trim();
-      const utterance = new SpeechSynthesisUtterance(cleanedText);
-      
-      const isEnglish = ENGLISH_REGEX.test(cleanedText);
-      const targetLang = isEnglish ? 'en-US' : 'ko-KR';
-
-      utterance.lang = targetLang;
-      utterance.rate = isEnglish ? 0.85 : 0.9; // 영어는 약간 더 느리게
-      utterance.pitch = 1;
-      utterance.volume = 1;
-
-      const targetVoice = voices.find(voice => voice.lang === targetLang);
-      
-      if (targetVoice) {
-        utterance.voice = targetVoice;
+    try {
+      if (isPlaying) {
+        window.speechSynthesis.cancel();
+        setIsPlaying(false);
       } else {
-        console.warn(`${targetLang} 음성을 찾을 수 없습니다. 기본 음성으로 재생됩니다.`);
-      }
-
-      utterance.onend = () => {
-        setIsPlaying(false);
-      };
-
-      utterance.onerror = (event) => {
-        if (event.error !== 'canceled') {
-          console.error('음성 재생 중 오류가 발생했습니다.');
+        if (!text || voices.length === 0) {
+          console.warn("Voices not loaded yet or text is empty.");
+          return;
         }
-        setIsPlaying(false);
-      };
 
-      window.speechSynthesis.speak(utterance);
-      setIsPlaying(true);
+        window.speechSynthesis.cancel();
+
+        const cleanedText = text.replace(/(\*\*|\*|\[.*?\])/g, '').trim();
+        const utterance = new SpeechSynthesisUtterance(cleanedText);
+        
+        const isEnglish = ENGLISH_REGEX.test(cleanedText);
+        const targetLang = isEnglish ? 'en-US' : 'ko-KR';
+
+        utterance.lang = targetLang;
+        utterance.rate = isEnglish ? 0.85 : 0.9; // 영어는 약간 더 느리게
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        const targetVoice = voices.find(voice => voice.lang === targetLang);
+        
+        if (targetVoice) {
+          utterance.voice = targetVoice;
+        } else {
+          console.warn(`${targetLang} 음성을 찾을 수 없습니다. 기본 음성으로 재생됩니다.`);
+        }
+
+        utterance.onend = () => {
+          setIsPlaying(false);
+        };
+
+        utterance.onerror = (event) => {
+          if (event.error !== 'canceled') {
+            console.error('음성 재생 중 오류가 발생했습니다.');
+          }
+          setIsPlaying(false);
+        };
+
+        window.speechSynthesis.speak(utterance);
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error("Error in TTS:", error);
+      alert('음성 재생 중 오류가 발생했습니다.');
+      setIsPlaying(false);
     }
   };
 
@@ -104,6 +123,11 @@ export default function TTSButton({
       default:
         return 'w-8 h-8 text-sm'
     }
+  }
+
+  // 지원되지 않는 환경에서는 버튼을 숨김
+  if (!isSupported) {
+    return null;
   }
 
   return (

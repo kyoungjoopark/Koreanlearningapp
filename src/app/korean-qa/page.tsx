@@ -52,16 +52,32 @@ function KoreanQAContent() {
       .join('\n')
 
     if (logContent.trim()) {
-      const blob = new Blob([`한국어 질문과 답변 대화 로그\n생성 시간: ${new Date().toLocaleString('ko-KR')}\n${'='.repeat(50)}\n\n${logContent}`], 
-        { type: 'text/plain;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `korean-qa-log-${timestamp}.txt`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      try {
+        // 브라우저 환경에서만 파일 다운로드 시도
+        if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+          const blob = new Blob([`한국어 질문과 답변 대화 로그\n생성 시간: ${new Date().toLocaleString('ko-KR')}\n${'='.repeat(50)}\n\n${logContent}`], 
+            { type: 'text/plain;charset=utf-8' })
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `korean-qa-log-${timestamp}.txt`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+        } else {
+          // 앱 환경에서는 클립보드에 복사
+          if (navigator.clipboard) {
+            navigator.clipboard.writeText(`한국어 질문과 답변 대화 로그\n생성 시간: ${new Date().toLocaleString('ko-KR')}\n${'='.repeat(50)}\n\n${logContent}`)
+            alert('대화 내용이 클립보드에 복사되었습니다.')
+          } else {
+            alert('파일 다운로드가 지원되지 않는 환경입니다.')
+          }
+        }
+      } catch (error) {
+        console.error('Error saving conversation log:', error)
+        alert('대화 로그 저장 중 오류가 발생했습니다.')
+      }
     } else {
       alert('저장할 대화 내용이 없습니다.')
     }
@@ -204,7 +220,7 @@ function KoreanQAContent() {
       </div>
 
       {/* 대화 기록 */}
-      <div ref={scrollRef} className="bg-white rounded-lg shadow-lg mb-6 h-[65vh] overflow-y-auto p-4 border">
+      <div ref={scrollRef} className="bg-white rounded-lg shadow-lg mb-6 h-[55vh] overflow-y-auto p-4 border">
         {messages.length === 0 ? (
           <div className="text-center text-korean-500 mt-20">
             <div className="text-4xl mb-4">👋</div>
@@ -253,24 +269,62 @@ function KoreanQAContent() {
       </div>
 
       {/* 입력 폼 */}
-      <form onSubmit={handleSubmit} className="mt-4">
-        <div className="flex items-center bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden p-2">
-          <SpeechInput onTranscript={setInput} isSubmitting={isLoading} />
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="여기에 질문을 입력하거나 마이크 버튼을 누르세요..."
-            className="flex-grow px-4 py-2 bg-transparent focus:outline-none text-gray-800 disabled:bg-gray-100"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            disabled={isLoading || !input.trim()}
-            className="bg-korean-600 text-white px-6 py-2 rounded-lg hover:bg-korean-700 focus:outline-none focus:ring-2 focus:ring-korean-500 focus:ring-offset-2 disabled:bg-korean-300 disabled:cursor-not-allowed transition-colors"
-          >
-            {isLoading ? '전송 중...' : '전송'}
-          </button>
+      <form onSubmit={handleSubmit} className="mt-6">
+        <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden p-4">
+          {/* 설명 텍스트 */}
+          <div className="mb-4 text-center">
+            <p className="text-korean-700 font-medium">
+              여기에 어느 언어로든 질문을 입력하거나 마이크 버튼을 누르세요
+            </p>
+            <p className="text-gray-500 text-sm mt-1">
+              Type your question in any language or click the mic button
+            </p>
+          </div>
+          
+          {/* 입력창과 버튼 */}
+          <div className="flex items-center gap-3">
+            <SpeechInput onTranscript={setInput} isSubmitting={isLoading} />
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="질문을 입력하세요... / Enter your question..."
+              className="flex-grow px-4 py-3 bg-transparent focus:outline-none text-gray-800 disabled:bg-gray-100 resize-none border border-gray-200 rounded-lg focus:border-korean-500 focus:ring-2 focus:ring-korean-200 min-h-[80px]"
+              disabled={isLoading}
+              rows={3}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e as any);
+                }
+              }}
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              className="bg-korean-600 text-white px-6 py-3 rounded-lg hover:bg-korean-700 focus:outline-none focus:ring-2 focus:ring-korean-500 focus:ring-offset-2 disabled:bg-korean-300 disabled:cursor-not-allowed transition-colors self-end min-h-[80px]"
+              title="질문 전송 / Send question"
+            >
+              <div className="flex flex-col items-center justify-center">
+                {isLoading ? (
+                  <>
+                    <span className="font-medium">전송 중...</span>
+                    <span className="text-xs opacity-80">Sending...</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-medium">전송</span>
+                    <span className="text-xs opacity-80">Send</span>
+                  </>
+                )}
+              </div>
+            </button>
+          </div>
+          
+          {/* 사용 팁 */}
+          <div className="mt-3 text-xs text-gray-500 text-center">
+            <span className="inline-block mr-4">💡 팁: Enter로 전송, Shift+Enter로 줄바꿈</span>
+            <span className="inline-block">💡 Tip: Enter to send, Shift+Enter for new line</span>
+          </div>
         </div>
       </form>
 
@@ -307,7 +361,53 @@ function KoreanQAContent() {
 export default function KoreanQAPage() {
   return (
     <ProtectedRoute>
-      <KoreanQAContent />
+      <ErrorBoundary>
+        <KoreanQAContent />
+      </ErrorBoundary>
     </ProtectedRoute>
   )
+}
+
+// 에러 바운더리 컴포넌트
+function ErrorBoundary({ children }: { children: React.ReactNode }) {
+  const [hasError, setHasError] = useState(false)
+
+  useEffect(() => {
+    // 브라우저 환경에서만 에러 리스너 등록
+    if (typeof window !== 'undefined') {
+      const handleError = (error: ErrorEvent) => {
+        console.error('Korean QA Page Error:', error)
+        setHasError(true)
+      }
+
+      window.addEventListener('error', handleError)
+      return () => window.removeEventListener('error', handleError)
+    }
+  }, [])
+
+  if (hasError) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">오류가 발생했습니다</h1>
+          <p className="text-gray-600 mb-4">
+            한국어 질문과 답변 페이지를 로드하는 중 문제가 발생했습니다.
+          </p>
+          <button
+            onClick={() => {
+              setHasError(false)
+              if (typeof window !== 'undefined') {
+                window.location.reload()
+              }
+            }}
+            className="bg-korean-600 text-white px-4 py-2 rounded-md hover:bg-korean-700"
+          >
+            다시 시도
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return <>{children}</>
 }
