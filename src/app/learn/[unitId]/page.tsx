@@ -693,28 +693,28 @@ export default function UnitPage() {
           <div className="mt-6 sm:mt-8 mb-6 sm:mb-8 p-4 sm:p-6 rounded-lg bg-yellow-50 border border-yellow-200">
             <div className="flex justify-between items-start">
               <div className="flex-grow pr-4">
-                <h3 className="text-lg sm:text-xl font-bold text-yellow-800 mb-3">
-                  주요 표현: {unit.제목}
-                </h3>
-                <div className="flex items-center">
-                    <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap flex-grow">
-                    {renderExplanation(
-                        unitKeySentenceExplanation[unit.제목]?.explanation,
-                        aiUnitTitleExplanation,
-                        aiUnitTitleExplanationLoading,
-                        aiUnitTitleExplanationError
-                    )}
-                    </p>
-                    {(aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation) && !aiUnitTitleExplanationLoading && (
+                <div className="flex items-center mb-3">
+                  <h3 className="text-lg sm:text-xl font-bold text-yellow-800 mr-3">
+                    주요 표현: {unit.제목}
+                  </h3>
+                  {(aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation) && !aiUnitTitleExplanationLoading && (
                     <button 
-                        onClick={() => handleTTS('main_explanation', aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation || '')} 
-                        className="text-yellow-600 hover:text-yellow-800 transition-colors ml-4 self-center"
-                        title="설명 듣기"
+                        onClick={() => handleTTS('main_explanation', `주요 표현: ${unit.제목}. ${aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation || ''}`)} 
+                        className="text-yellow-600 hover:text-yellow-800 transition-colors"
+                        title="전체 내용 듣기"
                     >
                         {ttsState.isPlaying && ttsState.id === 'main_explanation' ? <PauseCircle size={20} /> : <Volume2 size={20} />}
                     </button>
-                    )}
+                  )}
                 </div>
+                <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">
+                  {renderExplanation(
+                      unitKeySentenceExplanation[unit.제목]?.explanation,
+                      aiUnitTitleExplanation,
+                      aiUnitTitleExplanationLoading,
+                      aiUnitTitleExplanationError
+                  )}
+                </p>
               </div>
             </div>
           </div>
@@ -726,23 +726,23 @@ export default function UnitPage() {
                 const itemId = `grammar_${grammarItem}`;
                 return (
                 <div key={grammarItem} className="p-4 sm:p-6 rounded-lg bg-yellow-50 border border-yellow-200">
-                  <h3 className="text-lg sm:text-xl font-bold text-yellow-800 mb-3">
-                    문법: {grammarItem}
-                  </h3>
-                  <div className="flex items-center">
-                    <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap flex-grow">
-                      {grammarExplanationLoading[grammarItem] ? '...' : grammarExplanations[grammarItem] || '...'}
-                    </p>
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-lg sm:text-xl font-bold text-yellow-800 mr-3">
+                      문법: {grammarItem}
+                    </h3>
                     {grammarExplanations[grammarItem] && !grammarExplanationLoading[grammarItem] && (
                          <button 
-                            onClick={() => handleTTS(itemId, grammarExplanations[grammarItem] || '')} 
-                            className="text-yellow-600 hover:text-yellow-800 transition-colors ml-4 self-center"
-                            title="설명 듣기"
+                            onClick={() => handleTTS(itemId, `문법: ${grammarItem}. ${grammarExplanations[grammarItem] || ''}`)} 
+                            className="text-yellow-600 hover:text-yellow-800 transition-colors"
+                            title="전체 내용 듣기"
                         >
                             {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={20} /> : <Volume2 size={20} />}
                         </button>
                     )}
                   </div>
+                  <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">
+                    {grammarExplanationLoading[grammarItem] ? '...' : grammarExplanations[grammarItem] || '...'}
+                  </p>
 
 
                   {/* AI 설명 요청 버튼 */}

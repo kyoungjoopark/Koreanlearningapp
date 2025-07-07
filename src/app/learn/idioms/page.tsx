@@ -76,8 +76,8 @@ export default async function IdiomLevelSelectPage() {
           </div>
 
           <div className="text-center mb-12">
-            <h1 className="text-3xl font-bold text-korean-800">관용구 학습</h1>
-            <p className="text-lg text-korean-600 mt-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-korean-800">관용구 학습</h1>
+            <p className="text-base sm:text-lg text-korean-600 mt-2">
               사용 빈도별로 관용구를 학습하세요.
             </p>
           </div>
@@ -106,8 +106,8 @@ export default async function IdiomLevelSelectPage() {
                             )}
                           </div>
                           <div>
-                            <h2 className="text-2xl font-semibold text-korean-800 mb-1">{LEVEL_TITLE_TEXT[level] || '관용구 학습하기'}</h2>
-                            <p className="text-lg text-korean-500">{LEVEL_DESCRIPTIONS[level] || '관용구 학습하기'}</p>
+                            <h2 className="text-lg sm:text-xl font-semibold text-korean-800 mb-1">{LEVEL_TITLE_TEXT[level] || '관용구 학습하기'}</h2>
+                            <p className="text-base sm:text-lg text-korean-500">{LEVEL_DESCRIPTIONS[level] || '관용구 학습하기'}</p>
                           </div>
                         </div>
                         <ChevronRight className="w-8 h-8 text-gray-400" />
