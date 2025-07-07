@@ -41,7 +41,7 @@ export default function Header() {
 
   return (
     <header className="p-3 bg-gray-100 dark:bg-gray-800 border-b">
-      <div className="max-w-5xl mx-auto flex items-center justify-between px-2 md:px-4">
+      <div className="flex items-center justify-center gap-8 px-4">
         {/* Left: Home Link */}
         <Link href="/" className="text-base md:text-lg font-bold text-gray-800 dark:text-white flex-shrink-0">
           <span className="hidden sm:inline">Korean Learning App</span>

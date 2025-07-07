@@ -236,7 +236,7 @@ export default function MyPage() {
           </Link>
         </div>
 
-        <h1 className="text-4xl font-bold text-gray-800 mb-8">마이 페이지</h1>
+        <h1 className="text-3xl font-bold text-gray-800 mb-8">마이페이지</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
@@ -245,7 +245,7 @@ export default function MyPage() {
             {/* 내 정보 카드 */}
             <div className="bg-white rounded-xl shadow-lg p-8">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">내 정보</h2>
+                <h2 className="text-xl font-bold text-gray-800">내 정보</h2>
                 {isEditing ? (
                   <div className="flex gap-2">
                     <button onClick={() => setIsEditing(false)} className="text-sm text-gray-600 font-semibold hover:underline">
@@ -323,7 +323,7 @@ export default function MyPage() {
                     </>
                   )}
                   {/* 이메일과 가입일은 수정 불가 항목으로 항상 표시 */}
-                  <div><span className="font-semibold text-gray-500">이메일:</span><span className="ml-2">{user.email}</span></div>
+                  <div className="col-span-2"><span className="font-semibold text-gray-500">이메일:</span><br/><span className="ml-0 text-sm break-all">{user.email}</span></div>
                   <div><span className="font-semibold text-gray-500">가입일:</span><span className="ml-2">{new Date(user.created_at).toLocaleDateString()}</span></div>
                 </div>
               ) : <p>사용자 정보를 불러올 수 없습니다.</p>}
@@ -331,7 +331,7 @@ export default function MyPage() {
 
             {/* 선생님께 질문 카드 */}
             <div className="bg-white rounded-xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-4">선생님께 질문</h2>
+              <h2 className="text-xl font-bold text-gray-800 mb-4">선생님께 질문</h2>
               <p className="text-sm text-gray-600 mb-6">
                 한국어에 대해 궁금한 점을 빠르게 질문해보세요. 관리자가 확인 후 답변해드립니다.
               </p>
@@ -364,8 +364,8 @@ export default function MyPage() {
 
             {/* 내 질문과 답변 카드 */}
             <div className="bg-white rounded-xl shadow-lg p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <MessageSquare className="w-7 h-7 text-korean-600"/>
+              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                <MessageSquare className="w-6 h-6 text-korean-600"/>
                 내 질문과 답변
               </h2>
               
@@ -381,13 +381,6 @@ export default function MyPage() {
                           <div className="flex items-center gap-3">
                             <HelpCircle className="w-5 h-5 text-blue-600" />
                             <span className="font-semibold text-gray-900">질문</span>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              q.status === 'answered' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {q.status === 'answered' ? '답변 완료' : '답변 대기'}
-                            </span>
                           </div>
                           <span className="text-sm text-gray-500">
                             {new Date(q.created_at).toLocaleDateString('ko-KR')} {new Date(q.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
@@ -407,9 +400,7 @@ export default function MyPage() {
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
                                 <MessageSquare className="w-5 h-5 text-blue-600" />
-                                <span className="font-semibold text-blue-900">
-                                  {q.teacher_name || '선생님'}의 답변
-                                </span>
+                                <span className="font-semibold text-blue-900">답변</span>
                               </div>
                               {q.answered_at && (
                                 <span className="text-sm text-blue-600">
@@ -447,8 +438,8 @@ export default function MyPage() {
           <div className="lg:col-span-1 space-y-8">
             {/* 나의 학습 현황 카드 */}
             <div className="bg-white rounded-xl shadow-lg p-8 h-full">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <BookCheck className="w-7 h-7 text-korean-600"/>
+              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                <BookCheck className="w-6 h-6 text-korean-600"/>
                 나의 학습 현황
               </h2>
               {loadingProgress ? (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ChevronLeft, ChevronRight, Volume2, PauseCircle } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, VolumeX, PauseCircle } from 'lucide-react';
 
 interface Idiom {
   id: number;
@@ -271,12 +271,12 @@ export default function IdiomsClientPage({ idioms, level }: IdiomsClientPageProp
                   className="text-korean-600 hover:text-korean-800 transition-colors"
                   title="관용구 듣기"
                 >
-                  {ttsState.isPlaying && ttsState.id === 'idiom_title' ? <PauseCircle size={24} /> : <Volume2 size={24} />}
+                  {ttsState.isPlaying && ttsState.id === 'idiom_title' ? <PauseCircle size={24} /> : <VolumeX size={24} />}
                 </button>
               )}
               {!isTTSSupported && (
                 <span className="text-gray-400 ml-2" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                  🔇
+                  <VolumeX size={24} />
                 </span>
               )}
             </div>
@@ -295,12 +295,12 @@ export default function IdiomsClientPage({ idioms, level }: IdiomsClientPageProp
                       className="text-korean-600 hover:text-korean-800 transition-colors ml-4"
                       title="의미 듣기"
                     >
-                      {ttsState.isPlaying && ttsState.id === 'idiom_meaning' ? <PauseCircle size={20} /> : <Volume2 size={20} />}
+                      {ttsState.isPlaying && ttsState.id === 'idiom_meaning' ? <PauseCircle size={20} /> : <VolumeX size={20} />}
                     </button>
                   )}
                   {!isTTSSupported && currentIdiom.meaning && (
                     <span className="text-gray-400 ml-4" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                      🔇
+                      <VolumeX size={24} />
                     </span>
                   )}
                 </div>
@@ -317,12 +317,12 @@ export default function IdiomsClientPage({ idioms, level }: IdiomsClientPageProp
                         className="text-korean-600 hover:text-korean-800 transition-colors"
                         title="예문 듣기"
                       >
-                        {ttsState.isPlaying && ttsState.id === 'idiom_example' ? <PauseCircle size={20} /> : <Volume2 size={20} />}
+                        {ttsState.isPlaying && ttsState.id === 'idiom_example' ? <PauseCircle size={20} /> : <VolumeX size={20} />}
                       </button>
                     )}
                     {!isTTSSupported && (
                       <span className="text-gray-400" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                        🔇
+                        <VolumeX size={24} />
                       </span>
                     )}
                   </div>

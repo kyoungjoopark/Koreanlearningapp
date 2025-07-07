@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Volume2, PauseCircle } from 'lucide-react';
+import { VolumeX, PauseCircle } from 'lucide-react';
 import { Proverb } from './page';
 
 const INITIALS = [
@@ -180,12 +180,12 @@ export default function ProverbsClient({ proverbs }: { proverbs: Proverb[] }) {
                       className="text-korean-600 hover:text-korean-800 transition-colors"
                       title="속담 듣기"
                     >
-                      {ttsState.isPlaying && ttsState.id === `proverb_title_${proverb.id}` ? <PauseCircle size={20} /> : <Volume2 size={20} />}
+                      {ttsState.isPlaying && ttsState.id === `proverb_title_${proverb.id}` ? <PauseCircle size={20} /> : <VolumeX size={20} />}
                     </button>
                   )}
                   {!isTTSSupported && (
                     <span className="text-gray-400" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                      🔇
+                      <VolumeX size={20} />
                     </span>
                   )}
                 </div>
@@ -202,14 +202,14 @@ export default function ProverbsClient({ proverbs }: { proverbs: Proverb[] }) {
                     className="text-korean-600 hover:text-korean-800 transition-colors ml-4"
                     title="의미 듣기"
                   >
-                    {ttsState.isPlaying && ttsState.id === `proverb_meaning_${proverb.id}` ? <PauseCircle size={18} /> : <Volume2 size={18} />}
+                    {ttsState.isPlaying && ttsState.id === `proverb_meaning_${proverb.id}` ? <PauseCircle size={18} /> : <VolumeX size={18} />}
                   </button>
                 )}
-                {!isTTSSupported && (
-                  <span className="text-gray-400 ml-4" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                    🔇
-                  </span>
-                )}
+                                 {!isTTSSupported && (
+                   <span className="text-gray-400 ml-4" title="이 환경에서는 음성 기능을 지원하지 않습니다">
+                     <VolumeX size={18} />
+                   </span>
+                 )}
               </div>
               
               <div className="border-t border-gray-200 pt-4 mt-4">
@@ -221,14 +221,14 @@ export default function ProverbsClient({ proverbs }: { proverbs: Proverb[] }) {
                       className="text-korean-600 hover:text-korean-800 transition-colors"
                       title="예문 듣기"
                     >
-                      {ttsState.isPlaying && ttsState.id === `proverb_example_${proverb.id}` ? <PauseCircle size={18} /> : <Volume2 size={18} />}
+                      {ttsState.isPlaying && ttsState.id === `proverb_example_${proverb.id}` ? <PauseCircle size={18} /> : <VolumeX size={18} />}
                     </button>
                   )}
-                  {!isTTSSupported && (
-                    <span className="text-gray-400" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                      🔇
-                    </span>
-                  )}
+                                     {!isTTSSupported && (
+                     <span className="text-gray-400" title="이 환경에서는 음성 기능을 지원하지 않습니다">
+                       <VolumeX size={18} />
+                     </span>
+                   )}
                 </div>
                 <p className="text-korean-600">{proverb.example_sentence}</p>
                 <p className="text-gray-500 text-sm italic">{proverb.example_sentence_en}</p>

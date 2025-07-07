@@ -178,9 +178,9 @@ function KoreanQAContent() {
         <Link href="/" className="text-korean-600 hover:text-korean-800 mb-4 inline-block">
           ← 홈으로 돌아가기
         </Link>
-        <h1 className="text-3xl font-bold text-korean-800 mb-2">한국어 질문과 답변</h1>
+        <h1 className="text-2xl font-bold text-korean-800 mb-2">선생님께 질문</h1>
         <p className="text-korean-600">
-          AI 선생님과 함께 한국어에 대한 궁금한 점을 해결해보세요! 문법, 어휘, 발음, 문화 등 무엇이든 물어보세요.
+          한국어에 대해 궁금한 점을 빠르게 질문해보세요. 관리자가 확인 후 답변해드립니다.
         </p>
       </div>
 
@@ -242,15 +242,21 @@ function KoreanQAContent() {
                   }`}
                 >
                   <div className="whitespace-pre-wrap">{message.content}</div>
-                  {message.role === 'assistant' && message.content && (
-                    <div className="flex justify-end mt-2">
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-xs opacity-70">
+                      {new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {message.content && (
                       <TTSButton 
                         text={message.content} 
                         size="sm" 
-                        className="!bg-blue-600 hover:!bg-blue-700"
+                        className={message.role === 'user' 
+                          ? "!bg-korean-700 hover:!bg-korean-800" 
+                          : "!bg-blue-600 hover:!bg-blue-700"
+                        }
                       />
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
@@ -272,53 +278,49 @@ function KoreanQAContent() {
       <form onSubmit={handleSubmit} className="mt-6">
         <div className="bg-white border border-gray-300 rounded-lg shadow-sm overflow-hidden p-4">
           {/* 설명 텍스트 */}
-          <div className="mb-3 text-center">
-            <p className="text-korean-700 font-medium text-sm">
-              여기에 어느 언어로든 질문을 입력하거나 마이크 버튼을 누르세요
+          <div className="mb-4 text-center">
+            <p className="text-korean-700 font-medium text-base mb-1">
+              한국어에 대해 궁금한 점을 빠르게 질문해보세요
             </p>
-            <p className="text-gray-500 text-xs mt-1">
-              Type your question in any language or click the mic button
+            <p className="text-gray-600 text-sm mb-1">
+              모든 언어로 질문 입력 가능 | All languages supported for questions
+            </p>
+            <p className="text-gray-500 text-xs">
+              마이크 버튼을 눌러 음성으로 질문하거나 직접 입력하세요
             </p>
           </div>
           
-          {/* 입력창과 버튼 */}
+          {/* 입력창과 마이크 (세로 배치로 변경) */}
           <div className="space-y-3">
-            {/* 마이크와 텍스트 입력 영역 */}
-            <div className="flex items-start gap-3">
+            {/* 마이크 버튼을 위로 이동 */}
+            <div className="flex justify-center">
               <SpeechInput onTranscript={setInput} isSubmitting={isLoading} />
-              <div className="flex-grow">
-                <textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="질문을 입력하세요..."
-                  className="w-full px-3 py-2 bg-transparent focus:outline-none text-gray-800 disabled:bg-gray-100 resize-none border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 min-h-[40px] text-sm"
-                  disabled={isLoading}
-                  rows={2}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSubmit(e as any);
-                    }
-                  }}
-                />
-              </div>
-              {/* 웹에서만 표시되는 전송 버튼 (옆에 배치) */}
-              <button
-                type="submit"
-                disabled={isLoading || !input.trim()}
-                className="hidden md:block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium self-start"
-                title="질문 전송"
-              >
-                {isLoading ? '전송 중...' : '전송'}
-              </button>
             </div>
             
-            {/* 모바일/앱에서만 표시되는 전송 버튼 (아래에 배치) */}
-            <div className="flex justify-end md:hidden">
+            {/* 텍스트 입력창을 전체 너비로 */}
+            <div className="w-full">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="질문을 입력하세요..."
+                className="w-full px-4 py-3 bg-transparent focus:outline-none text-gray-800 disabled:bg-gray-100 resize-none border border-gray-200 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 min-h-[80px] text-base"
+                disabled={isLoading}
+                rows={3}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e as any);
+                  }
+                }}
+              />
+            </div>
+            
+            {/* 전송 버튼을 아래로 이동 */}
+            <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={isLoading || !input.trim()}
-                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors text-base font-medium"
                 title="질문 전송"
               >
                 {isLoading ? '전송 중...' : '전송'}
