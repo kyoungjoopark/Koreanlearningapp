@@ -628,44 +628,45 @@ export default function UnitPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
-              <Link href={backLink} className="flex items-center text-blue-600 hover:text-blue-700 transition-colors">
-                <ArrowLeft size={20} className="mr-2" />
-                과목으로 돌아가기
+              <Link href={backLink} className="flex items-center text-blue-600 hover:text-blue-700 transition-colors text-sm">
+                <ArrowLeft size={18} className="mr-1" />
+                <span className="hidden sm:inline">과목으로 돌아가기</span>
+                <span className="sm:hidden">과목</span>
               </Link>
             </div>
-            <div className="text-lg font-semibold text-gray-700 truncate" title={`${unit.과목} - ${unit.단계} / ${unit.주제}`}>
+            <div className="text-sm sm:text-base font-medium text-gray-700 truncate mx-4 text-center flex-1" title={`${unit.과목} - ${unit.단계} / ${unit.주제}`}>
                 {`${unit.제목 || unit.주제}`}
             </div>
             {/* 이전/다음 단원 네비게이션 버튼 영역 */}
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1">
              {navigationInfo?.prevUnit ? (
                 <Link
                   href={`/learn/${navigationInfo.prevUnit.id}`}
-                  className="flex items-center text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-md transition-colors"
+                  className="flex items-center text-blue-600 hover:text-blue-700 px-2 py-1 rounded-md transition-colors text-sm"
                   title={`이전: ${navigationInfo.prevUnit.title}`}
                 >
-                  <ChevronLeft size={16} className="mr-1" />
-                  <span>이전</span>
+                  <ChevronLeft size={14} className="mr-1" />
+                  <span className="hidden sm:inline">이전</span>
                 </Link>
               ) : (
-                <div className="flex items-center text-gray-400 px-3 py-1.5 rounded-md cursor-not-allowed">
-                  <ChevronLeft size={16} className="mr-1" />
-                  <span>이전</span>
+                <div className="flex items-center text-gray-400 px-2 py-1 rounded-md cursor-not-allowed text-sm">
+                  <ChevronLeft size={14} className="mr-1" />
+                  <span className="hidden sm:inline">이전</span>
                 </div>
               )}
              {navigationInfo?.nextUnit ? (
                 <Link
                   href={`/learn/${navigationInfo.nextUnit.id}`}
-                  className="flex items-center text-blue-600 hover:text-blue-700 px-3 py-1.5 rounded-md transition-colors"
+                  className="flex items-center text-blue-600 hover:text-blue-700 px-2 py-1 rounded-md transition-colors text-sm"
                   title={`다음: ${navigationInfo.nextUnit.title}`}
                 >
-                  <span>다음</span>
-                  <ChevronRight size={16} className="ml-1" />
+                  <span className="hidden sm:inline">다음</span>
+                  <ChevronRight size={14} className="ml-1" />
                 </Link>
               ) : (
-                <div className="flex items-center text-gray-400 px-3 py-1.5 rounded-md cursor-not-allowed">
-                  <span>다음</span>
-                  <ChevronRight size={16} className="ml-1" />
+                <div className="flex items-center text-gray-400 px-2 py-1 rounded-md cursor-not-allowed text-sm">
+                  <span className="hidden sm:inline">다음</span>
+                  <ChevronRight size={14} className="ml-1" />
                 </div>
               )}
             </div>
@@ -675,28 +676,28 @@ export default function UnitPage() {
 
       <main className="max-w-5xl mx-auto p-4 sm:p-6 lg:p-8">
         {/* 단원 정보 헤더 */}
-        <div className="bg-blue-600 text-white p-6 rounded-lg shadow-md mb-8">
-          <h1 className="text-3xl font-bold mb-2">{courseName} - {unit.단계}</h1>
-          <p className="text-xl mb-1">주제: {unit.주제}</p>
-          <p className="text-lg">주요 표현: {unit.제목}</p>
+        <div className="bg-blue-600 text-white p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl font-bold mb-2">{courseName} - {unit.단계}</h1>
+          <p className="text-base sm:text-lg mb-1">주제: {unit.주제}</p>
+          <p className="text-sm sm:text-base">주요 표현: {unit.제목}</p>
         </div>
 
         {/* --- 단원 해설 (구: 문법) 섹션 --- */}
-        <div id="grammar" className="card mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center">
-            <BookText className="mr-3 text-green-500" />
+        <div id="grammar" className="card mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-6 flex items-center">
+            <BookText className="mr-2 sm:mr-3 text-green-500" size={20} />
             단원 해설
           </h2>
 
           {/* 주요 표현 설명 */}
-          <div className="mt-8 mb-8 p-6 rounded-lg bg-yellow-50 border border-yellow-200">
+          <div className="mt-6 sm:mt-8 mb-6 sm:mb-8 p-4 sm:p-6 rounded-lg bg-yellow-50 border border-yellow-200">
             <div className="flex justify-between items-start">
               <div className="flex-grow pr-4">
-                <h3 className="text-xl font-bold text-yellow-800 mb-3">
+                <h3 className="text-lg sm:text-xl font-bold text-yellow-800 mb-3">
                   주요 표현: {unit.제목}
                 </h3>
                 <div className="flex items-center">
-                    <p className="text-gray-700 whitespace-pre-wrap flex-grow">
+                    <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap flex-grow">
                     {renderExplanation(
                         unitKeySentenceExplanation[unit.제목]?.explanation,
                         aiUnitTitleExplanation,
@@ -710,7 +711,7 @@ export default function UnitPage() {
                         className="text-yellow-600 hover:text-yellow-800 transition-colors ml-4 self-center"
                         title="설명 듣기"
                     >
-                        {ttsState.isPlaying && ttsState.id === 'main_explanation' ? <PauseCircle size={22} /> : <Volume2 size={22} />}
+                        {ttsState.isPlaying && ttsState.id === 'main_explanation' ? <PauseCircle size={20} /> : <Volume2 size={20} />}
                     </button>
                     )}
                 </div>
@@ -720,16 +721,16 @@ export default function UnitPage() {
 
           {/* 세부 문법 항목 */}
           {combinedGrammar.length > 0 && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {combinedGrammar.map((grammarItem) => {
                 const itemId = `grammar_${grammarItem}`;
                 return (
-                <div key={grammarItem} className="p-6 rounded-lg bg-yellow-50 border border-yellow-200">
-                  <h3 className="text-xl font-bold text-yellow-800 mb-3">
+                <div key={grammarItem} className="p-4 sm:p-6 rounded-lg bg-yellow-50 border border-yellow-200">
+                  <h3 className="text-lg sm:text-xl font-bold text-yellow-800 mb-3">
                     문법: {grammarItem}
                   </h3>
                   <div className="flex items-center">
-                    <p className="text-gray-700 whitespace-pre-wrap flex-grow">
+                    <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap flex-grow">
                       {grammarExplanationLoading[grammarItem] ? '...' : grammarExplanations[grammarItem] || '...'}
                     </p>
                     {grammarExplanations[grammarItem] && !grammarExplanationLoading[grammarItem] && (
@@ -738,7 +739,7 @@ export default function UnitPage() {
                             className="text-yellow-600 hover:text-yellow-800 transition-colors ml-4 self-center"
                             title="설명 듣기"
                         >
-                            {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={22} /> : <Volume2 size={22} />}
+                            {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={20} /> : <Volume2 size={20} />}
                         </button>
                     )}
                   </div>
@@ -748,7 +749,7 @@ export default function UnitPage() {
                   <button 
                     onClick={() => fetchGrammarExplanation(grammarItem, parseInt(unitId))}
                     disabled={!unitId || grammarExplanationLoading[grammarItem]}
-                    className="mt-4 w-full text-left p-2 rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500"
+                    className="mt-4 w-full text-left p-2 rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500 text-sm sm:text-base"
                   >
                     AI로 더 자세한 설명 보기
                   </button>
@@ -759,31 +760,31 @@ export default function UnitPage() {
         </div>
         
         {/* --- 듣고 말하기와 읽기 연습 섹션 --- */}
-        <section className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-5 flex items-center">
-            <BookText size={26} className="mr-3 text-indigo-500" /> 듣고 말하기와 읽기 연습
+        <section className="bg-white p-4 sm:p-6 rounded-lg shadow-md mb-6 sm:mb-8">
+          <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4 sm:mb-5 flex items-center">
+            <BookText size={22} className="mr-2 sm:mr-3 text-indigo-500" /> 듣고 말하기와 읽기 연습
           </h2>
 
           {/* 주제에 대한 AI 예문 생성 섹션 */}
-          <div className="p-4 border rounded-lg mb-6 bg-indigo-50">
+          <div className="p-4 border rounded-lg mb-4 sm:mb-6 bg-indigo-50">
             <div className="flex items-center justify-between">
-              <span className="text-lg font-medium text-gray-800">{unit.주제}</span>
+              <span className="text-base sm:text-lg font-medium text-gray-800">{unit.주제}</span>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => handleGenerateExamples(unit.주제)}
                   disabled={aiActivityLoading[unit.주제]}
-                  className="px-3 py-1.5 text-sm font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-wait transition-colors flex items-center"
+                  className="px-3 py-1.5 text-xs sm:text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-wait transition-colors flex items-center"
                 >
-                  <Lightbulb size={14} className="mr-1.5" />
+                  <Lightbulb size={12} className="mr-1.5" />
                   AI 예문 보기
                 </button>
               </div>
             </div>
             {aiActivityLoading[unit.주제] && (
-              <div className="mt-3 text-center text-sm text-gray-500">AI 예문을 생성하는 중...</div>
+              <div className="mt-3 text-center text-xs sm:text-sm text-gray-500">AI 예문을 생성하는 중...</div>
             )}
             {aiActivityError[unit.주제] && (
-              <div className="mt-3 text-sm text-red-500 bg-red-50 p-3 rounded-md">
+              <div className="mt-3 text-xs sm:text-sm text-red-500 bg-red-50 p-3 rounded-md">
                 <strong>오류:</strong> {aiActivityError[unit.주제]}
               </div>
             )}
@@ -806,14 +807,14 @@ export default function UnitPage() {
                       <li key={i} className="flex items-start p-2 rounded-md hover:bg-gray-100">
                         <span className="mr-2 text-purple-500 pt-1">&#8226;</span>
                         <div className="flex-grow">
-                          <p className="text-gray-800">{sentence}</p>
+                          <p className="text-sm sm:text-base text-gray-800">{sentence}</p>
                           {translation && (
-                            <p className="text-gray-500">({translation})</p>
+                            <p className="text-xs sm:text-sm text-gray-500">({translation})</p>
                           )}
                         </div>
                         {translation && (
                           <button onClick={() => handleTTS(itemId, sentence, translation)} className="ml-2 p-1 text-gray-500 hover:text-gray-800 transition-colors self-center" title="한국어와 영어 듣기">
-                            {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={18} /> : <Volume2 size={18} />}
+                            {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={16} /> : <Volume2 size={16} />}
                           </button>
                         )}
                       </li>
@@ -829,23 +830,23 @@ export default function UnitPage() {
             {(unit.어휘 || '').split(';').map(word => word.trim()).filter(Boolean).map(word => (
               <div key={word} className="p-4 border rounded-lg transition-all duration-300 ease-in-out hover:shadow-md hover:border-indigo-300">
                 <div className="flex items-center justify-between">
-                  <span className="text-lg font-medium text-gray-800">{word}</span>
+                  <span className="text-base sm:text-lg font-medium text-gray-800">{word}</span>
                   <div className="flex items-center space-x-2">
                     <button
                       onClick={() => handleGenerateExamples(word)}
                       disabled={aiActivityLoading[word]}
-                      className="px-3 py-1.5 text-sm font-semibold text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-wait transition-colors flex items-center"
+                      className="px-3 py-1.5 text-xs sm:text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-wait transition-colors flex items-center"
                     >
-                      <Lightbulb size={14} className="mr-1.5" />
+                      <Lightbulb size={12} className="mr-1.5" />
                       AI 예문 보기
                     </button>
                   </div>
                 </div>
                 {aiActivityLoading[word] && (
-                  <div className="mt-3 text-center text-sm text-gray-500">AI 예문을 생성하는 중...</div>
+                  <div className="mt-3 text-center text-xs sm:text-sm text-gray-500">AI 예문을 생성하는 중...</div>
                 )}
                 {aiActivityError[word] && (
-                  <div className="mt-3 text-sm text-red-500 bg-red-50 p-3 rounded-md">
+                  <div className="mt-3 text-xs sm:text-sm text-red-500 bg-red-50 p-3 rounded-md">
                     <strong>오류:</strong> {aiActivityError[word]}
                   </div>
                 )}
@@ -868,14 +869,14 @@ export default function UnitPage() {
                           <li key={i} className="flex items-start p-2 rounded-md hover:bg-gray-100">
                             <span className="mr-2 text-purple-500 pt-1">&#8226;</span>
                             <div className="flex-grow">
-                              <p className="text-gray-800">{sentence}</p>
+                              <p className="text-sm sm:text-base text-gray-800">{sentence}</p>
                               {translation && (
-                                <p className="text-gray-500">({translation})</p>
+                                <p className="text-xs sm:text-sm text-gray-500">({translation})</p>
                               )}
                             </div>
                             {translation && (
                               <button onClick={() => handleTTS(itemId, sentence, translation)} className="ml-2 p-1 text-gray-500 hover:text-gray-800 transition-colors self-center" title="한국어와 영어 듣기">
-                                {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={18} /> : <Volume2 size={18} />}
+                                {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={16} /> : <Volume2 size={16} />}
                               </button>
                             )}
                           </li>
@@ -891,17 +892,17 @@ export default function UnitPage() {
           {/* 관련 키워드 */}
           {unit.related_keywords && unit.related_keywords.length > 0 && (
             <div className="mt-6 pt-4 border-t border-gray-200">
-              <h3 className="text-md font-semibold text-gray-700 mb-2">연관 키워드</h3>
+              <h3 className="text-sm sm:text-base font-semibold text-gray-700 mb-2">연관 키워드</h3>
               <div className="flex flex-wrap gap-2">
                 {unit.related_keywords.map((keyword, index) => (
                   <div key={index} className="flex items-center bg-gray-100 p-2 rounded-md shadow-sm">
-                    <span className="text-sm text-gray-600">{keyword}</span>
+                    <span className="text-xs sm:text-sm text-gray-600">{keyword}</span>
                     <button
                       onClick={() => handleTTS(`keyword_${index}`, keyword)}
                       className="ml-2 p-1 text-gray-500 hover:text-gray-700"
                       title={`${keyword} 듣기`}
                     >
-                      {ttsState.isPlaying && ttsState.id === `keyword_${index}` ? <PauseCircle size={16} /> : <Volume2 size={16} />}
+                      {ttsState.isPlaying && ttsState.id === `keyword_${index}` ? <PauseCircle size={14} /> : <Volume2 size={14} />}
                     </button>
                   </div>
                 ))}
@@ -911,14 +912,14 @@ export default function UnitPage() {
         </section>
 
         {learnedWordsLog.length > 0 && (
-          <div className="mt-12 p-6 border border-gray-200 rounded-lg bg-gray-50">
-            <h2 className="text-xl font-semibold text-gray-700 mb-4 flex items-center">
-              <BookText size={24} className="mr-3 text-gray-600" />
+          <div className="mt-8 sm:mt-12 p-4 sm:p-6 border border-gray-200 rounded-lg bg-gray-50">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-700 mb-4 flex items-center">
+              <BookText size={20} className="mr-2 sm:mr-3 text-gray-600" />
               오늘 학습한 어휘
             </h2>
             <div className="flex flex-wrap gap-2">
               {learnedWordsLog.map((word, idx) => (
-                <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full">
+                <span key={idx} className="px-3 py-1 bg-blue-100 text-blue-700 text-xs sm:text-sm rounded-full">
                   {word}
                 </span>
               ))}
