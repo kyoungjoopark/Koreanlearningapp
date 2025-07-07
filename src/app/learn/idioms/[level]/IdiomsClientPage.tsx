@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Volume2, PauseCircle } from 'lucide-react';
 
 interface Idiom {
   id: number;
@@ -26,10 +26,117 @@ export default function IdiomsClientPage({ idioms, level }: IdiomsClientPageProp
   const [currentIdioms, setCurrentIdioms] = useState(idioms);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
+  
+  // TTS 상태 관리
+  const [ttsState, setTtsState] = useState({ id: null as string | null, isPlaying: false, isPaused: false });
+  const [isTTSSupported, setIsTTSSupported] = useState(false);
+  const utteranceQueueRef = useRef<SpeechSynthesisUtterance[]>([]);
 
   useEffect(() => {
     setCurrentIdioms(idioms);
+    
+    // TTS 지원 여부 확인
+    const checkTTSSupport = () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        try {
+          const testUtterance = new SpeechSynthesisUtterance('');
+          setIsTTSSupported(true);
+          console.log('[TTS] Speech synthesis is supported');
+        } catch (error) {
+          console.warn('[TTS] Speech synthesis not supported:', error);
+          setIsTTSSupported(false);
+        }
+      } else {
+        console.warn('[TTS] Speech synthesis API not available');
+        setIsTTSSupported(false);
+      }
+    };
+
+    checkTTSSupport();
   }, [idioms]);
+
+  // TTS 함수들
+  const playNextInQueue = () => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      console.warn('[TTS] Speech synthesis not supported in this environment');
+      setTtsState({ id: null, isPlaying: false, isPaused: false });
+      return;
+    }
+
+    if (utteranceQueueRef.current.length > 0) {
+      const utterance = utteranceQueueRef.current.shift();
+      if (utterance) {
+        if (!ttsState.id) {
+          utteranceQueueRef.current = [];
+          return;
+        }
+        utterance.onend = playNextInQueue;
+        utterance.onerror = (event) => {
+          console.error('[TTS] Speech synthesis error:', event);
+          setTtsState({ id: null, isPlaying: false, isPaused: false });
+        };
+        
+        try {
+          window.speechSynthesis.speak(utterance);
+        } catch (error) {
+          console.error('[TTS] Failed to speak:', error);
+          setTtsState({ id: null, isPlaying: false, isPaused: false });
+        }
+      }
+    } else {
+      setTtsState({ id: null, isPlaying: false, isPaused: false });
+    }
+  };
+
+  const handleTTS = (id: string, ...texts: string[]) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) {
+      alert('죄송합니다. 현재 환경에서는 음성 합성 기능을 사용할 수 없습니다.');
+      console.warn('[TTS] Speech synthesis not supported in this environment');
+      return;
+    }
+
+    const { id: currentId, isPlaying } = ttsState;
+
+    try {
+      if (isPlaying && currentId === id) {
+        window.speechSynthesis.pause();
+        setTtsState({ id, isPlaying: false, isPaused: true });
+      } else if (!isPlaying && currentId === id) { 
+        window.speechSynthesis.resume();
+        setTtsState({ id, isPlaying: true, isPaused: false });
+      } else {
+        window.speechSynthesis.cancel();
+        utteranceQueueRef.current = [];
+
+        const languages = ['ko-KR', 'en-US'];
+        texts.forEach((text, index) => {
+          if (!text) return;
+
+          const lang = languages[index] || 'ko-KR';
+          const chunks = text.match(/[^.!?]+[.!?]*/g) || [text];
+          
+          chunks.forEach(chunk => {
+            if (chunk.trim()) {
+              const utterance = new SpeechSynthesisUtterance(chunk);
+              utterance.lang = lang;
+              // 한국어는 1.1 속도, 영어는 1.0 속도
+              utterance.rate = lang === 'ko-KR' ? 1.1 : 1.0;
+              utterance.pitch = 1.0;
+              utterance.volume = 1.0;
+              utteranceQueueRef.current.push(utterance);
+            }
+          });
+        });
+        
+        setTtsState({ id, isPlaying: true, isPaused: false });
+        playNextInQueue();
+      }
+    } catch (error) {
+      console.error('[TTS] Error in handleTTS:', error);
+      alert('음성 재생 중 오류가 발생했습니다.');
+      setTtsState({ id: null, isPlaying: false, isPaused: false });
+    }
+  };
 
   // 레벨별 빈도 설명 매핑
   const getFrequencyDescription = (level: string) => {
@@ -154,21 +261,71 @@ export default function IdiomsClientPage({ idioms, level }: IdiomsClientPageProp
           </div>
           
           <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200">
-            <h2 className="text-4xl font-bold text-center text-korean-800 mb-8">
-              {currentIdiom.expression}
-            </h2>
+            <div className="flex items-center justify-center mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-center text-korean-800 mr-4">
+                {currentIdiom.expression}
+              </h2>
+              {isTTSSupported && (
+                <button 
+                  onClick={() => handleTTS('idiom_title', currentIdiom.expression || '')} 
+                  className="text-korean-600 hover:text-korean-800 transition-colors"
+                  title="관용구 듣기"
+                >
+                  {ttsState.isPlaying && ttsState.id === 'idiom_title' ? <PauseCircle size={24} /> : <Volume2 size={24} />}
+                </button>
+              )}
+              {!isTTSSupported && (
+                <span className="text-gray-400 ml-2" title="이 환경에서는 음성 기능을 지원하지 않습니다">
+                  🔇
+                </span>
+              )}
+            </div>
             
             <div className="space-y-8">
               {/* 의미 */}
               <div className="p-6 bg-korean-100/50 rounded-lg">
-                <p className="text-base text-gray-800">{currentIdiom.meaning}</p>
-                <p className="text-base text-gray-600 mt-2">{currentIdiom.meaning_en}</p>
+                <div className="flex items-start justify-between">
+                  <div className="flex-grow">
+                    <p className="text-base text-gray-800">{currentIdiom.meaning}</p>
+                    <p className="text-base text-gray-600 mt-2">{currentIdiom.meaning_en}</p>
+                  </div>
+                  {isTTSSupported && currentIdiom.meaning && (
+                    <button 
+                      onClick={() => handleTTS('idiom_meaning', currentIdiom.meaning || '', currentIdiom.meaning_en || '')} 
+                      className="text-korean-600 hover:text-korean-800 transition-colors ml-4"
+                      title="의미 듣기"
+                    >
+                      {ttsState.isPlaying && ttsState.id === 'idiom_meaning' ? <PauseCircle size={20} /> : <Volume2 size={20} />}
+                    </button>
+                  )}
+                  {!isTTSSupported && currentIdiom.meaning && (
+                    <span className="text-gray-400 ml-4" title="이 환경에서는 음성 기능을 지원하지 않습니다">
+                      🔇
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* 예문 */}
               {currentIdiom.example_sentence && (
                 <div>
-                  <h3 className="text-xl font-bold text-korean-700 mb-3">예문:</h3>
+                  <div className="flex items-center mb-3">
+                    <h3 className="text-xl font-bold text-korean-700 mr-3">예문:</h3>
+                    {isTTSSupported && (
+                      <button 
+                        onClick={() => handleTTS('idiom_example', currentIdiom.example_sentence || '', currentIdiom.example_sentence_en || '')} 
+                        className="text-korean-600 hover:text-korean-800 transition-colors"
+                        title="예문 듣기"
+                      >
+                        {ttsState.isPlaying && ttsState.id === 'idiom_example' ? <PauseCircle size={20} /> : <Volume2 size={20} />}
+                      </button>
+                    )}
+                    {!isTTSSupported && (
+                      <span className="text-gray-400" title="이 환경에서는 음성 기능을 지원하지 않습니다">
+                        🔇
+                      </span>
+                    )}
+                  </div>
                   <div className="p-6 border border-gray-200 rounded-lg space-y-4 bg-gray-50">
                     <div className="text-gray-800 whitespace-pre-wrap">
                       {renderDialogue(currentIdiom.example_sentence, true)}
