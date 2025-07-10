@@ -10,11 +10,13 @@ import Image from 'next/image'
 import sejongHakdangImage from '@/assets/sejong_hakdang.png';
 import sejongPracticalImage from '@/assets/sejong_practical.png';
 import sejongKoreanImage from '@/assets/sejong_korean.png';
+import introductionImage from '@/assets/HG.png';
 
 const MAIN_COURSES = [
-  { name: "세종학당 한국어", image: sejongHakdangImage, isPending: false },
-  { name: "세종학당 실용 한국어", image: sejongPracticalImage, isPending: false },
-  { name: "세종한국어 (예정)", image: sejongKoreanImage, isPending: true }
+  { name: "입문", image: introductionImage, isPending: false, isIntroduction: true, description: "한국어 학습의 첫걸음을 시작해보세요" },
+  { name: "세종학당 한국어", image: sejongHakdangImage, isPending: false, isIntroduction: false },
+  { name: "세종학당 실용 한국어", image: sejongPracticalImage, isPending: false, isIntroduction: false },
+  { name: "세종한국어", image: sejongKoreanImage, isPending: false, isIntroduction: false }
 ];
 
 export default function CoursesPage() {
@@ -125,7 +127,7 @@ export default function CoursesPage() {
 
     console.log('[Stage Effect] 대표 과목 변경됨:', selectedCourse, '전체 유닛 수:', units.length);
 
-    if (selectedCourse && selectedCourse !== MAIN_COURSES[2].name /* "세종한국어 (예정)" */ && units.length > 0) {
+    if (selectedCourse && units.length > 0) {
       const courseUnits = units.filter(unit => unit.과목 && unit.과목.startsWith(selectedCourse));
       console.log(`[Stage Effect] "${selectedCourse}" 대표 과목으로 시작하는 유닛들로 필터링된 유닛들:`, courseUnits.length);
 
@@ -204,7 +206,7 @@ export default function CoursesPage() {
   }, [user, pathname, isLoading, router]);
 
   // 최종 필터링된 단원 목록
-  const filteredUnits = (selectedCourse && selectedStage && selectedCourse !== MAIN_COURSES[2].name)
+  const filteredUnits = (selectedCourse && selectedStage)
     ? units.filter(unit => {
         const unitStage = unit.단계 ? String(unit.단계).trim() : null;
         const currentSelectedStage = selectedStage ? String(selectedStage).trim() : null;
@@ -227,6 +229,12 @@ export default function CoursesPage() {
     const course = MAIN_COURSES.find(c => c.name === courseName);
     if (course && course.isPending) {
       return; // 예정 과목은 선택 불가
+    }
+    
+    // 입문 과목인 경우 바로 페이지로 이동
+    if (course && course.isIntroduction) {
+      router.push('/learn/introduction');
+      return;
     }
     
     if (selectedCourse === courseName) {
@@ -286,15 +294,24 @@ export default function CoursesPage() {
                           `}
                         >
                           <div className="w-full h-40 relative mb-2">
-                            <Image
-                              src={course.image}
-                              alt={`${course.name} 표지`}
-                              fill
-                              style={{ objectFit: "contain" }}
-                              className="rounded-md transition-transform group-hover:scale-105"
-                            />
+                            {course.image ? (
+                              <Image
+                                src={course.image}
+                                alt={`${course.name} 표지`}
+                                fill
+                                style={{ objectFit: "contain" }}
+                                className="rounded-md transition-transform group-hover:scale-105"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-korean-100 to-korean-200 rounded-md">
+                                <BookOpen size={48} className="text-korean-500" />
+                              </div>
+                            )}
                           </div>
                           <span className="font-semibold text-lg">{course.name}</span>
+                          {course.description && (
+                            <span className="text-sm text-gray-500 mt-1">{course.description}</span>
+                          )}
                           {course.isPending && <span className="text-sm font-medium">[준비 중]</span>}
                         </div>
                       ))}

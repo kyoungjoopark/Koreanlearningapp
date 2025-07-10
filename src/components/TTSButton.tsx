@@ -19,25 +19,40 @@ export default function TTSButton({
   const [isPlaying, setIsPlaying] = useState(false)
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([])
   const [isSupported, setIsSupported] = useState(false)
+  const [userStopped, setUserStopped] = useState(false) // 사용자가 직접 중지했는지 추적
 
   useEffect(() => {
     // 브라우저 환경에서만 실행
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      setIsSupported(true);
+      // 더 간단하고 확실한 TTS 지원 확인
+      const checkTTSSupport = () => {
+        try {
+          // 모던 브라우저에서는 API 존재만 확인하면 충분
+          const hasAPI = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+          setIsSupported(hasAPI);
+          console.log('[TTS] Speech synthesis API available:', hasAPI);
+        } catch (error) {
+          console.error('[TTS] Error checking speech synthesis:', error);
+          setIsSupported(false);
+        }
+      };
       
       const loadVoices = () => {
         try {
           const availableVoices = window.speechSynthesis.getVoices();
-          if (availableVoices.length > 0) {
-            setVoices(availableVoices);
-          }
+          console.log('[TTS] Available voices:', availableVoices.length);
+          setVoices(availableVoices);
         } catch (error) {
           console.error("Error loading voices:", error);
         }
       };
 
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+      // 초기 지원 여부 확인
+      checkTTSSupport();
+      
+      // 음성 로딩 (비동기적으로 로드될 수 있음)
       loadVoices();
+      window.speechSynthesis.onvoiceschanged = loadVoices;
 
       return () => {
         try {
@@ -56,84 +71,211 @@ export default function TTSButton({
     }
   }, []);
 
-  const handleToggleSpeech = () => {
+  const cleanTextForTTS = (inputText: string): string => {
+    // 1. 기본 마크다운 및 포맷팅 제거
+    let cleaned = inputText.replace(/(\*\*|\*|\[.*?\])/g, '');
+    
+    // 2. 사용자 요청 특수 기호 제거: "( )", ",", "/", "-", "~"
+    // 괄호는 제거하되 괄호 안의 내용은 유지
+    cleaned = cleaned.replace(/[()]/g, ' '); // 괄호만 제거
+    cleaned = cleaned.replace(/[,\/\-~]/g, ' '); // 다른 특수 기호 제거
+    
+    // 3. 여러 공백을 단일 공백으로 변환
+    cleaned = cleaned.replace(/\s+/g, ' ');
+    
+    // 4. 앞뒤 공백 제거
+    cleaned = cleaned.trim();
+    
+    console.log('[TTS] Original text:', inputText);
+    console.log('[TTS] Cleaned text (Korean + English):', cleaned);
+    
+    return cleaned;
+  };
+
+  // 텍스트를 한국어와 영어 부분으로 분리
+  const splitTextByLanguage = (text: string): Array<{text: string, lang: string}> => {
+    const segments = [];
+    const words = text.split(/\s+/);
+    let currentSegment = '';
+    let currentLang = '';
+    
+    for (const word of words) {
+      if (!word.trim()) continue;
+      
+      // 단어가 영어인지 한국어인지 판단
+      const isEnglish = /[a-zA-Z]/.test(word);
+      const wordLang = isEnglish ? 'en-US' : 'ko-KR';
+      
+      if (currentLang === '' || currentLang === wordLang) {
+        // 같은 언어이거나 첫 단어인 경우
+        currentSegment += (currentSegment ? ' ' : '') + word;
+        currentLang = wordLang;
+      } else {
+        // 언어가 바뀐 경우, 이전 세그먼트 저장하고 새 세그먼트 시작
+        if (currentSegment.trim()) {
+          segments.push({ text: currentSegment.trim(), lang: currentLang });
+        }
+        currentSegment = word;
+        currentLang = wordLang;
+      }
+    }
+    
+    // 마지막 세그먼트 추가
+    if (currentSegment.trim()) {
+      segments.push({ text: currentSegment.trim(), lang: currentLang });
+    }
+    
+    return segments;
+  };
+
+  // 세그먼트들을 순차적으로 재생
+  const playSegments = (segments: Array<{text: string, lang: string}>, index: number) => {
+    if (index >= segments.length) {
+      setIsPlaying(false);
+      setUserStopped(false);
+      console.log('[TTS] All segments completed');
+      return;
+    }
+    
+    const segment = segments[index];
+    const utterance = new SpeechSynthesisUtterance(segment.text);
+    
+    utterance.lang = segment.lang;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    
+    // 언어별 설정
+    if (segment.lang === 'en-US') {
+      utterance.rate = 1.0; // 영어는 일반 속도
+      // 미국식 영어 음성 찾기
+      const usVoice = voices.find(voice => 
+        voice.lang === 'en-US' && 
+        (voice.name.includes('US') || voice.name.includes('United States'))
+      );
+      if (usVoice) {
+        utterance.voice = usVoice;
+      }
+    } else {
+      utterance.rate = 0.9; // 한국어는 약간 느리게
+      // 한국어 음성 찾기
+      const koVoice = voices.find(voice => voice.lang === 'ko-KR');
+      if (koVoice) {
+        utterance.voice = koVoice;
+      }
+    }
+    
+    utterance.onstart = () => {
+      if (index === 0) {
+        setIsPlaying(true);
+      }
+      console.log(`[TTS] Playing segment ${index + 1}/${segments.length}: "${segment.text}" (${segment.lang})`);
+    };
+    
+    utterance.onend = () => {
+      console.log(`[TTS] Completed segment ${index + 1}/${segments.length}`);
+      // 다음 세그먼트 재생
+      playSegments(segments, index + 1);
+    };
+    
+    utterance.onerror = (event) => {
+      console.error(`[TTS] Error in segment ${index + 1}:`, event.error);
+      setIsPlaying(false);
+      setUserStopped(false);
+    };
+    
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleToggleSpeech = async () => {
+    console.log('[TTSButton] Button clicked, text received:', text);
+    console.log('[TTSButton] Text length:', text?.length);
+    
     if (!isSupported) {
-      alert('죄송합니다. 사용하시는 환경에서 음성 합성을 지원하지 않습니다.');
+      console.warn('[TTSButton] Speech synthesis not supported in this environment');
       return;
     }
 
     try {
       if (isPlaying) {
+        setUserStopped(true); // 사용자가 직접 중지함을 표시
         window.speechSynthesis.cancel();
         setIsPlaying(false);
       } else {
-        if (!text || voices.length === 0) {
-          console.warn("Voices not loaded yet or text is empty.");
+        if (!text) {
+          console.warn("[TTSButton] Text is empty, cannot proceed");
           return;
         }
 
+        // 재생 전 기존 음성 정지
         window.speechSynthesis.cancel();
+        setUserStopped(false); // 새로운 음성 시작 시 플래그 초기화
 
-        const cleanedText = text.replace(/(\*\*|\*|\[.*?\])/g, '').trim();
-        const utterance = new SpeechSynthesisUtterance(cleanedText);
+        const cleanedText = cleanTextForTTS(text);
         
-        const isEnglish = ENGLISH_REGEX.test(cleanedText);
-        const targetLang = isEnglish ? 'en-US' : 'ko-KR';
-
-        utterance.lang = targetLang;
-        utterance.rate = isEnglish ? 0.85 : 0.9; // 영어는 약간 더 느리게
-        utterance.pitch = 1;
-        utterance.volume = 1;
-
-        const targetVoice = voices.find(voice => voice.lang === targetLang);
-        
-        if (targetVoice) {
-          utterance.voice = targetVoice;
-        } else {
-          console.warn(`${targetLang} 음성을 찾을 수 없습니다. 기본 음성으로 재생됩니다.`);
+        if (!cleanedText) {
+          console.warn("No readable text after cleaning.");
+          return;
         }
 
-        utterance.onend = () => {
-          setIsPlaying(false);
-        };
-
-        utterance.onerror = (event) => {
-          if (event.error !== 'canceled') {
-            console.error('음성 재생 중 오류가 발생했습니다.');
-          }
-          setIsPlaying(false);
-        };
-
-        window.speechSynthesis.speak(utterance);
-        setIsPlaying(true);
+        // 발화 전 일시정지 (첫 음절 잘림 방지)
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // 텍스트를 한국어와 영어 부분으로 분리
+        const segments = splitTextByLanguage(cleanedText);
+        console.log('[TTS] Text segments:', segments);
+        
+        if (segments.length === 0) {
+          console.warn("No readable segments after processing.");
+          return;
+        }
+        
+        // 첫 번째 세그먼트부터 시작
+        playSegments(segments, 0);
       }
     } catch (error) {
       console.error("Error in TTS:", error);
-      alert('음성 재생 중 오류가 발생했습니다.');
       setIsPlaying(false);
+      setUserStopped(false); // 플래그 초기화
     }
   };
 
   const getSizeClasses = () => {
     switch (size) {
       case 'sm':
-        return 'w-5 h-5 text-xs' // 24px -> 20px로 크기 조정
+        return 'w-5 h-5 text-xs'  // 16px → 20px (20% 증가)
       case 'lg':
-        return 'w-10 h-10 text-lg'
+        return 'w-8 h-8 text-base'
       default:
-        return 'w-8 h-8 text-sm'
+        return 'w-6 h-6 text-sm'
     }
   }
 
-  // 지원되지 않는 환경에서는 버튼을 숨김
+  // 지원되지 않는 환경에서는 회색 X 아이콘 표시
   if (!isSupported) {
-    return null;
+    return (
+      <button
+        disabled
+        className={`
+          ${getSizeClasses()}
+          flex items-center justify-center
+          bg-gray-400 text-white rounded-full
+          cursor-not-allowed
+          flex-shrink-0
+          ${className}
+        `}
+        title="이 환경에서는 음성 기능을 지원하지 않습니다"
+      >
+        <svg className="w-1/2 h-1/2" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clipRule="evenodd" />
+        </svg>
+      </button>
+    );
   }
 
   return (
     <button
       onClick={handleToggleSpeech}
-      disabled={!text || voices.length === 0} // 텍스트가 없거나, 음성 로딩이 완료되지 않으면 비활성화
+      disabled={!text}
       className={`
         ${getSizeClasses()}
         flex items-center justify-center
@@ -148,10 +290,12 @@ export default function TTSButton({
     >
       {isPlaying ? (
         // 정지 아이콘 (II 모양)
-        <svg className="w-1/2 h-1/2" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 4h3v12H5V4zm7 0h3v12h-3V4z" clipRule="evenodd"/></svg>
+        <svg className="w-1/2 h-1/2" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M5 4h3v12H5V4zm7 0h3v12h-3V4z" clipRule="evenodd"/>
+        </svg>
       ) : (
         // 재생 아이콘
-        <svg fill="currentColor" viewBox="0 0 20 20">
+        <svg className="w-1/2 h-1/2" fill="currentColor" viewBox="0 0 20 20">
           <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.82L4.29 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.29l4.093-3.82a1 1 0 011.09-.104zM12 6.5a1 1 0 011.414 0 5 5 0 010 7.071A1 1 0 0112 12.157a3 3 0 000-4.314A1 1 0 0112 6.5z" clipRule="evenodd" />
           <path d="M14.657 3.757a1 1 0 011.414 0A9 9 0 0118 10a9 9 0 01-1.929 5.243 1 1 0 01-1.414-1.414A7 7 0 0016 10a7 7 0 00-1.343-4.243 1 1 0 010-1.414z" />
         </svg>

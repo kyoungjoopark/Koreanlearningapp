@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, BookText, Lightbulb, Mic, Headphones, Edit, Eye, Volume2, ChevronLeft, ChevronRight, PauseCircle, VolumeX } from 'lucide-react'
+import { ArrowLeft, BookText, Lightbulb, ChevronLeft, ChevronRight } from 'lucide-react'
+import TTSButton from '@/components/TTSButton'
 
 // 대표 과목명 목록 (courses/page.tsx의 MAIN_COURSES와 일치 또는 공유 필요)
 const REPRESENTATIVE_COURSES = [
@@ -73,12 +74,6 @@ export default function UnitPage() {
     prevUnit: { id: number; title: string } | null;
     nextUnit: { id: number; title: string } | null;
   } | null>(null);
-
-  // --- TTS 상태 관리 시스템 ---
-  const [ttsState, setTtsState] = useState({ id: null as string | null, isPlaying: false, isPaused: false });
-  const [isTTSSupported, setIsTTSSupported] = useState(false);
-  const utteranceQueueRef = useRef<SpeechSynthesisUtterance[]>([]);
-  // ---
 
   // *** 여기로 함수를 옮겨서 먼저 선언되도록 합니다. ***
   const formatStructuredExplanation = (data: any): string => {
@@ -236,47 +231,6 @@ export default function UnitPage() {
     // 다른 unit.제목에 대한 설명을 추가할 수 있습니다.
   };
 
-  // TTS 함수 복원 및 개선 (lang 파라미터 추가)
-  const speakText = (text: string, lang: string = 'ko-KR') => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel(); // 진행 중인 음성 취소
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = lang; // 'ko-KR' 또는 'en-US' 등
-      utterance.rate = 1.0;
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
-    } else {
-      alert('죄송합니다. 사용하시는 브라우저가 음성 합성을 지원하지 않습니다.');
-      console.log('[ULP_DEBUG] Speech synthesis not supported');
-    }
-  };
-
-  // 한국어와 영어를 순차적으로 재생하는 새로운 함수
-  const speakSentencePair = (korean: string, english: string) => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel(); // 진행 중인 음성 취소
-
-      const koreanUtterance = new SpeechSynthesisUtterance(korean);
-      koreanUtterance.lang = 'ko-KR';
-      koreanUtterance.rate = 1.0;
-      koreanUtterance.pitch = 1.0;
-
-      const englishUtterance = new SpeechSynthesisUtterance(english);
-      englishUtterance.lang = 'en-US';
-      englishUtterance.rate = 1.0;
-      englishUtterance.pitch = 1.0;
-
-      // 한국어 음성이 끝나면 영어 음성을 재생
-      koreanUtterance.onend = () => {
-        window.speechSynthesis.speak(englishUtterance);
-      };
-
-      window.speechSynthesis.speak(koreanUtterance);
-    } else {
-      alert('죄송합니다. 사용하시는 브라우저가 음성 합성을 지원하지 않습니다.');
-    }
-  };
-
   const renderExplanation = (
     predefined: string | undefined,
     ai: string | null,
@@ -301,26 +255,6 @@ export default function UnitPage() {
   };
 
   useEffect(() => {
-    // TTS 지원 여부 확인
-    const checkTTSSupport = () => {
-      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-        try {
-          // 간단한 테스트로 TTS 지원 확인
-          const testUtterance = new SpeechSynthesisUtterance('');
-          setIsTTSSupported(true);
-          console.log('[TTS] Speech synthesis is supported');
-        } catch (error) {
-          console.warn('[TTS] Speech synthesis not supported:', error);
-          setIsTTSSupported(false);
-        }
-      } else {
-        console.warn('[TTS] Speech synthesis API not available');
-        setIsTTSSupported(false);
-      }
-    };
-
-    checkTTSSupport();
-
     const storedLearnedWords = localStorage.getItem('learnedWordsLog');
     if (storedLearnedWords) {
       setLearnedWordsLog(JSON.parse(storedLearnedWords));
@@ -539,6 +473,7 @@ export default function UnitPage() {
           context: {
             unitTopic: unit?.주제,
             unitTitle: unit?.제목,
+            unitLevel: unit?.단계, // 레벨 정보 추가
             relatedWords: unit?.related_keywords
           }
         }),
@@ -558,121 +493,7 @@ export default function UnitPage() {
     }
   };
 
-  // --- 새로운 통합 TTS 핸들러 ---
-  const playNextInQueue = () => {
-    // 브라우저 호환성 체크
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      console.warn('[TTS] Speech synthesis not supported in this environment');
-      setTtsState({ id: null, isPlaying: false, isPaused: false });
-      return;
-    }
 
-    if (utteranceQueueRef.current.length > 0) {
-      const utterance = utteranceQueueRef.current.shift();
-      if (utterance) {
-        // 현재 재생이 중지되거나 다른 항목으로 넘어간 경우 큐를 중단
-        if (!ttsState.id) {
-          utteranceQueueRef.current = [];
-          return;
-        }
-        utterance.onend = playNextInQueue;
-        
-        // 에러 핸들링 추가
-        utterance.onerror = (event) => {
-          console.error('[TTS] Speech synthesis error:', event);
-          setTtsState({ id: null, isPlaying: false, isPaused: false });
-        };
-        
-        try {
-          window.speechSynthesis.speak(utterance);
-        } catch (error) {
-          console.error('[TTS] Failed to speak:', error);
-          setTtsState({ id: null, isPlaying: false, isPaused: false });
-        }
-      }
-    } else {
-      setTtsState({ id: null, isPlaying: false, isPaused: false }); // 모든 큐 재생 완료
-    }
-  };
-
-  const handleTTS = (id: string, ...texts: string[]) => {
-    console.log('[TTS_DEBUG] handleTTS called with id:', id, 'texts:', texts);
-    
-    // 브라우저 호환성 체크
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      console.error('[TTS_ERROR] Speech synthesis not available');
-      alert('죄송합니다. 현재 환경에서는 음성 합성 기능을 사용할 수 없습니다.');
-      return;
-    }
-
-    console.log('[TTS_DEBUG] Speech synthesis available');
-    const { id: currentId, isPlaying } = ttsState;
-    console.log('[TTS_DEBUG] Current TTS state:', { currentId, isPlaying });
-
-    try {
-      if (isPlaying && currentId === id) {
-        console.log('[TTS_DEBUG] Pausing current playback');
-        // 현재 재생 중인 것을 일시정지
-        window.speechSynthesis.pause();
-        setTtsState({ id, isPlaying: false, isPaused: true });
-      } else if (!isPlaying && currentId === id) { 
-        console.log('[TTS_DEBUG] Resuming playback');
-        // 현재 일시정지된 것을 재개
-        window.speechSynthesis.resume();
-        setTtsState({ id, isPlaying: true, isPaused: false });
-      } else {
-        console.log('[TTS_DEBUG] Starting new playback');
-        // 다른 것을 재생하거나 새로 시작
-        window.speechSynthesis.cancel();
-        utteranceQueueRef.current = [];
-
-        const languages = ['ko-KR', 'en-US'];
-        texts.forEach((text, index) => {
-          if (!text) return;
-
-          const lang = languages[index] || 'ko-KR';
-          console.log(`[TTS_DEBUG] Processing text: "${text}" with language: ${lang}`);
-          
-          // 긴 텍스트를 문장 또는 적절한 단위로 분할 (chunking)
-          const chunks = text.match(/[^.!?]+[.!?]*/g) || [text];
-          console.log(`[TTS_DEBUG] Text split into ${chunks.length} chunks:`, chunks);
-          
-          chunks.forEach(chunk => {
-            if (chunk.trim()) {
-              const utterance = new SpeechSynthesisUtterance(chunk.trim());
-              utterance.lang = lang;
-              utterance.rate = lang === 'ko-KR' ? 1.1 : 1.0; // 한국어는 1.1 속도, 영어는 1.0 속도
-              utterance.pitch = 1.0;
-              utterance.volume = 1.0;
-              
-              // 더 상세한 이벤트 리스너 추가
-              utterance.onstart = () => {
-                console.log(`[TTS_DEBUG] Started speaking: "${chunk.trim()}" (${lang})`);
-              };
-              
-              utterance.onend = () => {
-                console.log(`[TTS_DEBUG] Finished speaking: "${chunk.trim()}" (${lang})`);
-              };
-              
-              utterance.onerror = (event) => {
-                console.error(`[TTS_ERROR] Error speaking "${chunk.trim()}":`, event);
-              };
-              
-              utteranceQueueRef.current.push(utterance);
-            }
-          });
-        });
-        
-        console.log(`[TTS_DEBUG] Total utterances queued: ${utteranceQueueRef.current.length}`);
-        setTtsState({ id, isPlaying: true, isPaused: false });
-        playNextInQueue();
-      }
-    } catch (error) {
-      console.error('[TTS_ERROR] Error in handleTTS:', error);
-      alert('음성 재생 중 오류가 발생했습니다: ' + (error instanceof Error ? error.message : String(error)));
-      setTtsState({ id: null, isPlaying: false, isPaused: false });
-    }
-  };
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center"><div className="text-xl">단원 정보를 불러오는 중...</div></div>;
@@ -777,19 +598,12 @@ export default function UnitPage() {
                   <h3 className="text-lg sm:text-xl font-bold text-yellow-800 mr-3">
                     주요 표현: {unit.제목}
                   </h3>
-                  {isTTSSupported && (aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation) && !aiUnitTitleExplanationLoading && (
-                    <button 
-                        onClick={() => handleTTS('main_explanation', `주요 표현: ${unit.제목}. ${aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation || ''}`)} 
-                        className="text-yellow-600 hover:text-yellow-800 transition-colors"
-                        title="전체 내용 듣기"
-                    >
-                        {ttsState.isPlaying && ttsState.id === 'main_explanation' ? <PauseCircle size={20} /> : <VolumeX size={20} />}
-                    </button>
-                  )}
-                  {!isTTSSupported && (aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation) && !aiUnitTitleExplanationLoading && (
-                    <span className="text-gray-400 text-sm ml-2" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                      <VolumeX size={20} />
-                    </span>
+                  {!aiUnitTitleExplanationLoading && (
+                    <TTSButton 
+                      text={`주요 표현: ${unit.제목}. ${aiUnitTitleExplanation || unitKeySentenceExplanation[unit.제목]?.explanation || '설명을 불러오는 중입니다.'}`} 
+                      size="sm"
+                      className="ml-2"
+                    />
                   )}
                 </div>
                 <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">
@@ -815,19 +629,12 @@ export default function UnitPage() {
                     <h3 className="text-lg sm:text-xl font-bold text-yellow-800 mr-3">
                       문법: {grammarItem}
                     </h3>
-                    {isTTSSupported && grammarExplanations[grammarItem] && !grammarExplanationLoading[grammarItem] && (
-                         <button 
-                            onClick={() => handleTTS(itemId, `문법: ${grammarItem}. ${grammarExplanations[grammarItem] || ''}`)} 
-                            className="text-yellow-600 hover:text-yellow-800 transition-colors"
-                            title="전체 내용 듣기"
-                        >
-                            {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={20} /> : <VolumeX size={20} />}
-                        </button>
-                    )}
-                    {!isTTSSupported && grammarExplanations[grammarItem] && !grammarExplanationLoading[grammarItem] && (
-                      <span className="text-gray-400 text-sm ml-2" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                        🔇
-                      </span>
+                    {!grammarExplanationLoading[grammarItem] && (
+                      <TTSButton 
+                        text={`문법: ${grammarItem}. ${grammarExplanations[grammarItem] || '설명을 생성하려면 AI 버튼을 클릭하세요.'}`} 
+                        size="sm"
+                        className="ml-2"
+                      />
                     )}
                   </div>
                   <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">
@@ -902,15 +709,12 @@ export default function UnitPage() {
                             <p className="text-xs sm:text-sm text-gray-500">({translation})</p>
                           )}
                         </div>
-                        {isTTSSupported && translation && (
-                          <button onClick={() => handleTTS(itemId, sentence, translation)} className="ml-2 p-1 text-gray-500 hover:text-gray-800 transition-colors self-center" title="한국어와 영어 듣기">
-                            {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={16} /> : <VolumeX size={16} />}
-                          </button>
-                        )}
-                        {!isTTSSupported && translation && (
-                          <span className="ml-2 p-1 text-gray-400" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                            <VolumeX size={16} />
-                          </span>
+                        {(sentence || translation) && (
+                          <TTSButton 
+                            text={`${sentence}${translation ? '. ' + translation : ''}`} 
+                            size="sm"
+                            className="ml-2"
+                          />
                         )}
                       </li>
                     );
@@ -969,15 +773,12 @@ export default function UnitPage() {
                                 <p className="text-xs sm:text-sm text-gray-500">({translation})</p>
                               )}
                             </div>
-                            {isTTSSupported && translation && (
-                              <button onClick={() => handleTTS(itemId, sentence, translation)} className="ml-2 p-1 text-gray-500 hover:text-gray-800 transition-colors self-center" title="한국어와 영어 듣기">
-                                {ttsState.isPlaying && ttsState.id === itemId ? <PauseCircle size={16} /> : <VolumeX size={16} />}
-                              </button>
-                            )}
-                            {!isTTSSupported && translation && (
-                              <span className="ml-2 p-1 text-gray-400" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                                <VolumeX size={16} />
-                              </span>
+                            {(sentence || translation) && (
+                              <TTSButton 
+                                text={`${sentence}${translation ? '. ' + translation : ''}`} 
+                                size="sm"
+                                className="ml-2"
+                              />
                             )}
                           </li>
                         );
@@ -997,20 +798,11 @@ export default function UnitPage() {
                 {unit.related_keywords.map((keyword, index) => (
                   <div key={index} className="flex items-center bg-gray-100 p-2 rounded-md shadow-sm">
                     <span className="text-xs sm:text-sm text-gray-600">{keyword}</span>
-                    {isTTSSupported && (
-                      <button
-                        onClick={() => handleTTS(`keyword_${index}`, keyword)}
-                        className="ml-2 p-1 text-gray-500 hover:text-gray-700"
-                        title={`${keyword} 듣기`}
-                      >
-                        {ttsState.isPlaying && ttsState.id === `keyword_${index}` ? <PauseCircle size={14} /> : <VolumeX size={14} />}
-                      </button>
-                    )}
-                    {!isTTSSupported && (
-                      <span className="ml-2 p-1 text-gray-400" title="이 환경에서는 음성 기능을 지원하지 않습니다">
-                        <VolumeX size={14} />
-                      </span>
-                    )}
+                    <TTSButton 
+                      text={keyword} 
+                      size="sm"
+                      className="ml-2 scale-75"
+                    />
                   </div>
                 ))}
               </div>
