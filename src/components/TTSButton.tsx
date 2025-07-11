@@ -24,11 +24,15 @@ export default function TTSButton({
   useEffect(() => {
     // 브라우저 환경에서만 실행
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      // 더 간단하고 확실한 TTS 지원 확인
+      // 모바일 호환성을 고려한 TTS 지원 확인
       const checkTTSSupport = () => {
         try {
-          // 모던 브라우저에서는 API 존재만 확인하면 충분
           const hasAPI = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+          
+          // 모바일 디바이스 감지
+          const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+          console.log('[TTS] Device type:', isMobile ? 'Mobile' : 'Desktop');
+          
           setIsSupported(hasAPI);
           console.log('[TTS] Speech synthesis API available:', hasAPI);
         } catch (error) {
@@ -41,7 +45,18 @@ export default function TTSButton({
         try {
           const availableVoices = window.speechSynthesis.getVoices();
           console.log('[TTS] Available voices:', availableVoices.length);
-          setVoices(availableVoices);
+          
+          // 모바일에서는 voices가 비동기적으로 로드될 수 있으므로 재시도
+          if (availableVoices.length === 0) {
+            console.log('[TTS] No voices loaded yet, will retry...');
+            setTimeout(() => {
+              const retryVoices = window.speechSynthesis.getVoices();
+              console.log('[TTS] Retry - Available voices:', retryVoices.length);
+              setVoices(retryVoices);
+            }, 1000);
+          } else {
+            setVoices(availableVoices);
+          }
         } catch (error) {
           console.error("Error loading voices:", error);
         }
@@ -50,12 +65,23 @@ export default function TTSButton({
       // 초기 지원 여부 확인
       checkTTSSupport();
       
-      // 음성 로딩 (비동기적으로 로드될 수 있음)
+      // 음성 로딩 (모바일 호환성 개선)
       loadVoices();
+      
+      // 모바일에서 voices 로딩이 지연될 수 있으므로 여러 번 시도
+      const voiceLoadInterval = setInterval(() => {
+        if (voices.length === 0) {
+          loadVoices();
+        } else {
+          clearInterval(voiceLoadInterval);
+        }
+      }, 500);
+      
       window.speechSynthesis.onvoiceschanged = loadVoices;
 
       return () => {
         try {
+          clearInterval(voiceLoadInterval);
           window.speechSynthesis.onvoiceschanged = null;
           // 컴포넌트 언마운트 시 재생 중인 음성 중지
           if (window.speechSynthesis.speaking) {
@@ -69,7 +95,7 @@ export default function TTSButton({
       console.log("Speech Synthesis API not supported");
       setIsSupported(false);
     }
-  }, []);
+  }, [voices.length]);
 
   const cleanTextForTTS = (inputText: string): string => {
     // 1. 기본 마크다운 및 포맷팅 제거
@@ -200,27 +226,74 @@ export default function TTSButton({
         setUserStopped(true); // 사용자가 직접 중지함을 표시
         window.speechSynthesis.cancel();
         setIsPlaying(false);
-      } else {
-        if (!text) {
-          console.warn("[TTSButton] Text is empty, cannot proceed");
-          return;
-        }
+        return;
+      }
 
-        // 재생 전 기존 음성 정지
-        window.speechSynthesis.cancel();
-        setUserStopped(false); // 새로운 음성 시작 시 플래그 초기화
+      if (!text) {
+        console.warn("[TTSButton] Text is empty, cannot proceed");
+        return;
+      }
 
-        const cleanedText = cleanTextForTTS(text);
+      // 모바일 디바이스 감지
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // 재생 전 기존 음성 정지
+      window.speechSynthesis.cancel();
+      setUserStopped(false);
+
+      const cleanedText = cleanTextForTTS(text);
+      
+      if (!cleanedText) {
+        console.warn("No readable text after cleaning.");
+        return;
+      }
+
+      // 모바일에서는 User Gesture가 필요하므로 즉시 실행
+      if (isMobile) {
+        console.log('[TTS] Mobile device detected - using immediate execution');
         
-        if (!cleanedText) {
-          console.warn("No readable text after cleaning.");
-          return;
+        // 간단한 단일 utterance 방식 (모바일 호환성 향상)
+        const utterance = new SpeechSynthesisUtterance(cleanedText);
+        
+        // 한국어 우선 설정 (대부분의 텍스트가 한국어)
+        utterance.lang = 'ko-KR';
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+        
+        // 한국어 음성 찾기 (모바일에서 더 안정적)
+        const koVoice = voices.find(voice => voice.lang === 'ko-KR') || voices[0];
+        if (koVoice) {
+          utterance.voice = koVoice;
+          console.log('[TTS] Using voice:', koVoice.name, koVoice.lang);
         }
-
-        // 발화 전 일시정지 (첫 음절 잘림 방지)
+        
+        utterance.onstart = () => {
+          setIsPlaying(true);
+          console.log('[TTS] Mobile playback started');
+        };
+        
+        utterance.onend = () => {
+          setIsPlaying(false);
+          setUserStopped(false);
+          console.log('[TTS] Mobile playback completed');
+        };
+        
+        utterance.onerror = (event) => {
+          console.error('[TTS] Mobile playback error:', event.error);
+          setIsPlaying(false);
+          setUserStopped(false);
+        };
+        
+        // 모바일에서는 즉시 재생 (User Gesture 보장)
+        window.speechSynthesis.speak(utterance);
+        
+      } else {
+        console.log('[TTS] Desktop device - using advanced segmentation');
+        
+        // 데스크톱에서는 기존의 고급 기능 사용
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        // 텍스트를 한국어와 영어 부분으로 분리
         const segments = splitTextByLanguage(cleanedText);
         console.log('[TTS] Text segments:', segments);
         
@@ -229,13 +302,13 @@ export default function TTSButton({
           return;
         }
         
-        // 첫 번째 세그먼트부터 시작
         playSegments(segments, 0);
       }
+      
     } catch (error) {
       console.error("Error in TTS:", error);
       setIsPlaying(false);
-      setUserStopped(false); // 플래그 초기화
+      setUserStopped(false);
     }
   };
 

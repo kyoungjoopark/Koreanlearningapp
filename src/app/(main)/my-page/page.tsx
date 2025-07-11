@@ -31,6 +31,15 @@ interface Question {
   teacher_name?: string;
 }
 
+interface ExpressionProgress {
+  contentType: 'idioms' | 'proverbs';
+  level: string;
+  currentIndex: number;
+  totalItems: number;
+  completedItems: number[];
+  isLevelCompleted: boolean;
+}
+
 export default function MyPage() {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
@@ -47,6 +56,10 @@ export default function MyPage() {
   const [loadingQuestions, setLoadingQuestions] = useState(true);
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [loadingAllQuestions, setLoadingAllQuestions] = useState(true);
+
+  // 관용구/속담 진행 상황 관련 상태 추가
+  const [expressionProgress, setExpressionProgress] = useState<ExpressionProgress[]>([]);
+  const [loadingExpressionProgress, setLoadingExpressionProgress] = useState(true);
 
   // 프로필 수정을 위한 상태 추가
   const [isEditing, setIsEditing] = useState(false);
@@ -96,9 +109,58 @@ export default function MyPage() {
       }
     };
 
+    const fetchExpressionProgress = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const progressData: ExpressionProgress[] = [];
+        
+        // 관용구 레벨들 (초급, 중급, 고급)
+        const idiomLevels = ['초급', '중급', '고급'];
+        // 속담 레벨들 (모든 한글 초성 포함)
+        const proverbLevels = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+        
+        // 관용구 진행 상황 가져오기
+        for (const level of idiomLevels) {
+          const response = await fetch(`/api/expression-progress?contentType=idioms&level=${level}`);
+          if (response.ok) {
+            const data = await response.json();
+            progressData.push({
+              contentType: 'idioms',
+              level,
+              ...data
+            });
+          }
+        }
+        
+        // 속담 진행 상황 가져오기
+        for (const level of proverbLevels) {
+          const response = await fetch(`/api/expression-progress?contentType=proverbs&level=${level}`);
+          if (response.ok) {
+            const data = await response.json();
+            progressData.push({
+              contentType: 'proverbs',
+              level,
+              ...data
+            });
+          }
+        }
+        
+        setExpressionProgress(progressData);
+      } catch (error) {
+        console.error("Error fetching expression progress:", error);
+      } finally {
+        setLoadingExpressionProgress(false);
+      }
+    };
+
     fetchUserData();
     fetchProgress();
-  }, []);
+    
+    if (user?.id) {
+      fetchExpressionProgress();
+    }
+  }, [user?.id]);
 
   // 사용자가 로드된 후 질문 목록 가져오기
   useEffect(() => {
@@ -436,11 +498,106 @@ export default function MyPage() {
 
           {/* 오른쪽 섹션 (1/3 너비) */}
           <div className="lg:col-span-1 space-y-8">
-            {/* 나의 학습 현황 카드 */}
+            {/* 관용구/속담 학습 진행 상황 카드 */}
+            <div className="bg-white rounded-xl shadow-lg p-8">
+              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
+                <BookCheck className="w-6 h-6 text-korean-600"/>
+                관용구/속담 학습 진행 상황
+              </h2>
+              {loadingExpressionProgress ? (
+                <p>진행 상황을 불러오는 중입니다...</p>
+              ) : (
+                <div className="space-y-4">
+                  {/* 관용구와 속담을 가로로 나란히 배치 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* 관용구 섹션 */}
+                    <div className="bg-blue-50 rounded-lg p-4">
+                      <h3 className="text-base font-semibold text-blue-700 mb-3 text-center border-b border-blue-200 pb-2">관용구</h3>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {expressionProgress
+                          .filter(p => p.contentType === 'idioms')
+                          .map((progress) => (
+                            <div key={`idioms-${progress.level}`} className="bg-white p-2 rounded">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-700">{progress.level}</span>
+                                <span className="text-xs text-gray-600">
+                                  {progress.completedItems.length}/{progress.totalItems}
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div 
+                                  className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${progress.totalItems > 0 ? (progress.completedItems.length / progress.totalItems) * 100 : 0}%` 
+                                  }}
+                                ></div>
+                              </div>
+                              {progress.isLevelCompleted && (
+                                <div className="text-center mt-1">
+                                  <span className="text-xs text-green-600 font-bold">✓ 완료</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+
+                    {/* 속담 섹션 */}
+                    <div className="bg-green-50 rounded-lg p-4">
+                      <h3 className="text-base font-semibold text-green-700 mb-3 text-center border-b border-green-200 pb-2">속담</h3>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {expressionProgress
+                          .filter(p => p.contentType === 'proverbs')
+                          .map((progress) => (
+                            <div key={`proverbs-${progress.level}`} className="bg-white p-2 rounded">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-sm font-medium text-gray-700">{progress.level}</span>
+                                <span className="text-xs text-gray-600">
+                                  {progress.completedItems.length}/{progress.totalItems}
+                                </span>
+                              </div>
+                              <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                <div 
+                                  className="bg-green-600 h-1.5 rounded-full transition-all duration-300"
+                                  style={{ 
+                                    width: `${progress.totalItems > 0 ? (progress.completedItems.length / progress.totalItems) * 100 : 0}%` 
+                                  }}
+                                ></div>
+                              </div>
+                              {progress.isLevelCompleted && (
+                                <div className="text-center mt-1">
+                                  <span className="text-xs text-green-600 font-bold">✓ 완료</span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 진행 상황이 없을 때 */}
+                  {expressionProgress.length === 0 && (
+                    <div className="text-center py-6">
+                      <p className="text-gray-500 mb-4">아직 학습을 시작하지 않았습니다.</p>
+                      <div className="flex gap-2 justify-center">
+                        <Link href="/learn/idioms" className="px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors">
+                          관용구 학습 시작
+                        </Link>
+                        <Link href="/learn/proverbs" className="px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors">
+                          속담 학습 시작
+                        </Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 한국어 학습 진행 상황 카드 */}
             <div className="bg-white rounded-xl shadow-lg p-8 h-full">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
                 <BookCheck className="w-6 h-6 text-korean-600"/>
-                나의 학습 현황
+                한국어 학습 진행 상황
               </h2>
               {loadingProgress ? (
                 <p>학습 기록을 불러오는 중입니다...</p>
