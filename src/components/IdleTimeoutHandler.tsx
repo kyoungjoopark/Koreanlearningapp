@@ -12,7 +12,10 @@ const IdleTimeoutHandler = () => {
   const timeoutId = useRef<NodeJS.Timeout | null>(null)
   
   // 5분으로 설정 (5 * 60 * 1000 ms)
-  const IDLE_TIMEOUT = 5 * 60 * 1000 
+  const IDLE_TIMEOUT = 5 * 60 * 1000
+  
+  // 모바일 디바이스 감지
+  const isMobile = typeof window !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
 
   const logout = useCallback(async () => {
     // 이미 로그아웃된 상태이거나, 인증 페이지에 있다면 실행하지 않음
@@ -41,28 +44,51 @@ const IdleTimeoutHandler = () => {
       return;
     }
 
-    const events: (keyof WindowEventMap)[] = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll']
+    // 모바일/데스크톱에 따라 다른 이벤트 사용
+    const windowEvents = isMobile 
+      ? ['touchstart', 'touchmove', 'touchend', 'scroll', 'orientationchange', 'focus', 'blur']
+      : ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll', 'focus', 'blur']
 
     const handleActivity = () => {
+      console.log('[IdleTimeout] User activity detected on', isMobile ? 'mobile' : 'desktop')
       resetTimer()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[IdleTimeout] Page became visible - resetting timer')
+        resetTimer()
+      }
     }
 
     // 초기 타이머 설정 및 이벤트 리스너 등록
     resetTimer()
-    events.forEach((event) => {
-      window.addEventListener(event, handleActivity)
+    
+    // Window 이벤트 등록
+    windowEvents.forEach((event) => {
+      window.addEventListener(event as keyof WindowEventMap, handleActivity)
     })
+    
+    // Document 이벤트 등록 (visibilitychange)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    console.log('[IdleTimeout] Initialized for', isMobile ? 'mobile' : 'desktop', 'with events:', windowEvents)
 
     // 컴포넌트 언마운트 또는 경로 변경 시 클린업
     return () => {
       if (timeoutId.current) {
         clearTimeout(timeoutId.current)
       }
-      events.forEach((event) => {
-        window.removeEventListener(event, handleActivity)
+      
+      // Window 이벤트 제거
+      windowEvents.forEach((event) => {
+        window.removeEventListener(event as keyof WindowEventMap, handleActivity)
       })
+      
+      // Document 이벤트 제거
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [resetTimer, pathname]) // 경로가 변경될 때마다 이펙트를 재실행하여 타이머 로직을 재평가
+  }, [resetTimer, pathname, isMobile]) // 경로가 변경될 때마다 이펙트를 재실행하여 타이머 로직을 재평가
 
   return null // 이 컴포넌트는 UI를 렌더링하지 않음
 }
