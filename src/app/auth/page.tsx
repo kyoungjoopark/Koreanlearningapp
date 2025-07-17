@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn, signUp, isTeacher } from '@/lib/auth'
@@ -343,9 +343,5 @@ function AuthContent() {
 }
 
 export default function AuthPage() {
-  return (
-    <Suspense fallback={<div className="container mx-auto px-4 py-8"><div className="max-w-md mx-auto"><div className="text-center">로딩 중...</div></div></div>}>
-      <AuthContent />
-    </Suspense>
-  )
+  return <AuthContent />
 } 

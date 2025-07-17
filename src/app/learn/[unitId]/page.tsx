@@ -75,6 +75,52 @@ export default function UnitPage() {
     nextUnit: { id: number; title: string } | null;
   } | null>(null);
 
+  // 학습 완료 관련 상태 추가
+  const [isCompleted, setIsCompleted] = useState<boolean>(false);
+  const [completionLoading, setCompletionLoading] = useState<boolean>(false);
+
+  // 학습 완료 상태 확인 함수
+  const checkCompletionStatus = async (lessonId: string) => {
+    try {
+      const response = await fetch('/api/progress');
+      if (response.ok) {
+        const progressData = await response.json();
+        const completed = progressData.some((item: any) => item.id.toString() === lessonId);
+        setIsCompleted(completed);
+      }
+    } catch (error) {
+      console.error('완료 상태 확인 실패:', error);
+    }
+  };
+
+  // 학습 완료 처리 함수
+  const handleMarkAsCompleted = async () => {
+    if (!unitId || isCompleted || completionLoading) return;
+
+    setCompletionLoading(true);
+    try {
+      const response = await fetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lesson_id: parseInt(unitId) })
+      });
+
+      if (response.ok) {
+        setIsCompleted(true);
+        // 성공 알림 (선택적)
+        alert('🎉 단원 학습을 완료했습니다!');
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || '완료 처리 실패');
+      }
+    } catch (error: any) {
+      console.error('완료 처리 실패:', error);
+      alert('완료 처리 중 오류가 발생했습니다: ' + error.message);
+    } finally {
+      setCompletionLoading(false);
+    }
+  };
+
   // *** 여기로 함수를 옮겨서 먼저 선언되도록 합니다. ***
   const formatStructuredExplanation = (data: any): string => {
     // data 자체가 explanation 객체일 수도 있고, data.explanation에 있을 수도 있으므로 둘 다 확인합니다.
@@ -143,7 +189,7 @@ export default function UnitPage() {
       content += `\n[응용 예문]\n`;
       example_sentences.forEach((sent: string) => (content += `- ${sent}\n`));
       
-      return content.replace(/\*+/g, ''); // Markdown Bold/Italic 제거
+      return content.replace(/\*+/g, '').replace(/^#{1,6}\s*/gm, ''); // Markdown Bold/Italic 및 헤더 제거
     }
 
     // 새로운 통합 형식 (grammer_and_structure)
@@ -159,7 +205,7 @@ export default function UnitPage() {
           content += `- ${ex.example.korean} (${ex.example.english})\n`;
         }
       });
-      return content.replace(/\*+/g, '');
+      return content.replace(/\*+/g, '').replace(/^#{1,6}\s*/gm, ''); // Markdown Bold/Italic 및 헤더 제거
     }
 
     // 초/중급 새로 추가된 형식
@@ -180,7 +226,7 @@ export default function UnitPage() {
           content += `- ${ex.example.korean} (${ex.example.english})\n`;
         }
       });
-      return content.replace(/\*+/g, '');
+      return content.replace(/\*+/g, '').replace(/^#{1,6}\s*/gm, ''); // Markdown Bold/Italic 및 헤더 제거
     }
 
     // 어떤 형식에도 맞지 않을 경우, 원본 객체를 문자열로 변환하여 반환
@@ -356,6 +402,9 @@ export default function UnitPage() {
         }
         // --- 로직 복원 끝 ---
 
+        // 완료 상태 확인
+        await checkCompletionStatus(unitId);
+
       } catch (err: any) {
         console.error('[ULP_ERROR] An error occurred in fetchUnitDetails:', err);
         setError(err.message || '알 수 없는 오류가 발생했습니다.');
@@ -454,7 +503,19 @@ export default function UnitPage() {
     }
   };
 
-  const handleGenerateExamples = async (prompt: string) => {
+  const handleGenerateExamples = async (prompt: string, event?: React.MouseEvent) => {
+    // 모바일에서 중복 실행 방지
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    
+    // 이미 로딩 중이면 실행하지 않음
+    if (aiActivityLoading[prompt]) {
+      console.log(`[TTS] Already generating examples for: ${prompt}`);
+      return;
+    }
+
     // 'prompt'를 키로 사용하도록 상태 업데이트
     setAiActivityLoading(prev => ({ ...prev, [prompt]: true }));
     setAiActivityError(prev => ({ ...prev, [prompt]: null }));
@@ -570,6 +631,20 @@ export default function UnitPage() {
                   <ChevronRight size={14} className="ml-1" />
                 </div>
               )}
+              
+              {/* 학습 완료 버튼 */}
+              <button
+                onClick={handleMarkAsCompleted}
+                disabled={isCompleted || completionLoading}
+                className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ml-2 ${
+                  isCompleted 
+                    ? 'bg-green-500 text-white cursor-not-allowed' 
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                } ${completionLoading ? 'opacity-50 cursor-wait' : ''}`}
+                title={isCompleted ? '학습 완료됨' : '학습 완료 표시'}
+              >
+                {completionLoading ? '처리중...' : isCompleted ? '✓ 완료' : '완료'}
+              </button>
             </div>
           </div>
         </div>
@@ -648,7 +723,12 @@ export default function UnitPage() {
                     disabled={!unitId || grammarExplanationLoading[grammarItem]}
                     className="mt-4 w-full text-left p-2 rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500 text-sm sm:text-base"
                   >
-                    AI로 더 자세한 설명 보기
+                    {grammarExplanationLoading[grammarItem] 
+                      ? 'AI 설명 생성 중...' 
+                      : grammarExplanations[grammarItem] 
+                        ? '설명 생성 완료' 
+                        : 'AI로 더 자세한 설명 보기'
+                    }
                   </button>
                 </div>
               )})}
@@ -668,12 +748,17 @@ export default function UnitPage() {
               <span className="text-base sm:text-lg font-medium text-gray-800">{unit.주제}</span>
               <div className="flex items-center space-x-2">
                 <button
-                  onClick={() => handleGenerateExamples(unit.주제)}
+                  onClick={(e) => handleGenerateExamples(unit.주제, e)}
                   disabled={aiActivityLoading[unit.주제]}
                   className="px-3 py-1.5 text-xs sm:text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-wait transition-colors flex items-center"
                 >
                   <Lightbulb size={12} className="mr-1.5" />
-                  AI 예문 보기
+                  {aiActivityLoading[unit.주제] 
+                    ? 'AI 예문 생성 중...' 
+                    : generatedExamples[unit.주제] && generatedExamples[unit.주제].length > 0
+                      ? '예문 생성 완료' 
+                      : 'AI 예문 보기'
+                  }
                 </button>
               </div>
             </div>
@@ -732,12 +817,17 @@ export default function UnitPage() {
                   <span className="text-base sm:text-lg font-medium text-gray-800">{word}</span>
                   <div className="flex items-center space-x-2">
                     <button
-                      onClick={() => handleGenerateExamples(word)}
+                      onClick={(e) => handleGenerateExamples(word, e)}
                       disabled={aiActivityLoading[word]}
                       className="px-3 py-1.5 text-xs sm:text-sm font-semibold text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-wait transition-colors flex items-center"
                     >
                       <Lightbulb size={12} className="mr-1.5" />
-                      AI 예문 보기
+                      {aiActivityLoading[word] 
+                        ? 'AI 예문 생성 중...' 
+                        : generatedExamples[word] && generatedExamples[word].length > 0
+                          ? '예문 생성 완료' 
+                          : 'AI 예문 보기'
+                      }
                     </button>
                   </div>
                 </div>

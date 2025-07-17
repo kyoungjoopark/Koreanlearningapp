@@ -7,6 +7,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_LEARNING_SUPABASE_URL;
 const supabaseServiceKey = process.env.LEARNING_SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
+// 디버깅: 환경변수 확인
+console.log('=== DEBUG: API KEY INFO ===');
+console.log('OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
+console.log('OPENAI_API_KEY length:', process.env.OPENAI_API_KEY?.length || 0);
+console.log('OPENAI_API_KEY suffix:', process.env.OPENAI_API_KEY?.slice(-4) || 'none');
+console.log('Working Directory:', process.cwd());
+console.log('==========================');
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });

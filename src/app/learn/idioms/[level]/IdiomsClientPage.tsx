@@ -270,9 +270,20 @@ export default function IdiomsClientPage({ idioms, level }: IdiomsClientPageProp
     }
 
     const speakers = isKorean ? ['가', '나', '다'] : ['A', 'B', 'C'];
-    return text.split('\n').filter(line => line.trim() !== '').map((line, index) => (
-      <span key={index} className="block">{`${speakers[index]}: ${line}`}</span>
-    ));
+    return text.split('\n').filter(line => line.trim() !== '').map((line, index) => {
+      const trimmedLine = line.trim();
+      // 이미 화자 표시가 있는지 확인 (가:, 나:, A:, B: 등)
+      const hasExistingSpeaker = /^[가-힣A-Z]:\s*/.test(trimmedLine);
+      
+      if (hasExistingSpeaker) {
+        // 이미 화자 표시가 있으면 그대로 사용
+        return <span key={index} className="block">{trimmedLine}</span>;
+      } else {
+        // 화자 표시가 없으면 추가
+        const speaker = speakers[index % speakers.length] || speakers[0];
+        return <span key={index} className="block">{`${speaker}: ${trimmedLine}`}</span>;
+      }
+    });
   };
 
   return (

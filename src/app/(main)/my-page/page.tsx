@@ -6,6 +6,22 @@ import { type User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { ArrowLeft, BookCheck, UserCircle, Mail, Calendar, Hash, Edit, MessageSquare, HelpCircle, Send } from 'lucide-react';
 
+// 국적에 따른 기본 언어 설정 함수
+const getDefaultLanguageByNationality = (nationality: string): string => {
+  const langMap: Record<string, string> = {
+    'USA': 'en',
+    'Canada': 'en', 
+    'UK': 'en',
+    'Australia': 'en',
+    'Japan': 'ja',
+    'China': 'zh',
+    'Spain': 'es',
+    'Mexico': 'es',
+    'Korea': 'ko'
+  };
+  return langMap[nationality] || 'ko'; // 기본값은 한국어
+};
+
 interface CompletedLesson {
   id: number;
   과목: string;
@@ -61,6 +77,240 @@ export default function MyPage() {
   const [expressionProgress, setExpressionProgress] = useState<ExpressionProgress[]>([]);
   const [loadingExpressionProgress, setLoadingExpressionProgress] = useState(true);
 
+  // TTS 공지사항 언어 선택 상태
+  const [selectedTTSLang, setSelectedTTSLang] = useState<string>('ko');
+
+
+
+  // 다국어 TTS 공지사항 내용
+  const ttsNotices = {
+    ko: {
+      title: "🔊 음성 기능 이용 안내",
+      mobile: {
+        title: "📱 모바일에서 음성 기능 최적화",
+        content: "모바일에서 음성 기능을 원활하게 사용하려면 Chrome 브라우저를 사용해주세요.",
+        items: [
+          "• 추천 브라우저: Chrome (iOS, Android 모두 지원)",
+          "• 한국어: 완벽 지원", 
+          "• 영어: 원어민 발음으로 제공"
+        ]
+      },
+      troubleshoot: {
+        title: "⚠️ 음성 기능이 작동하지 않는 경우",
+        ios: {
+          title: "iOS (iPhone/iPad):",
+          items: [
+            "• 설정 → 접근성 → 음성 콘텐츠 → 음성 활성화",
+            "• Safari 대신 Chrome 앱 사용 권장"
+          ]
+        },
+        android: {
+          title: "Android:",
+          items: [
+            "• 설정 → 접근성 → 텍스트 음성 변환 → Google TTS 설치",
+            "• Chrome 브라우저 최신 버전 사용"
+          ]
+        },
+        common: {
+          title: "공통 확인사항:",
+          items: [
+            "• 시스템 볼륨 및 미디어 볼륨 확인",
+            "• 브라우저 최신 버전으로 업데이트", 
+            "• Wi-Fi 연결 상태 확인"
+          ]
+        }
+      },
+      tips: {
+        title: "✨ 음성 기능 활용 팁",
+        items: [
+          "• 각 텍스트 옆의 🔊 버튼을 클릭하여 음성으로 들어보세요",
+          "• 한국어와 영어가 섞인 텍스트도 자동으로 구분하여 재생됩니다",
+          "• 재생 중 버튼을 다시 클릭하면 중지됩니다"
+        ]
+      }
+    },
+    en: {
+      title: "🔊 Text-to-Speech (TTS) Guide",
+      mobile: {
+        title: "📱 Mobile TTS Optimization",
+        content: "For optimal TTS experience on mobile devices, please use Chrome browser.",
+        items: [
+          "• Recommended Browser: Chrome (supports both iOS and Android)",
+          "• Korean: Fully supported",
+          "• English: Native pronunciation quality"
+        ]
+      },
+      troubleshoot: {
+        title: "⚠️ If TTS is not working",
+        ios: {
+          title: "iOS (iPhone/iPad):",
+          items: [
+            "• Settings → Accessibility → Spoken Content → Enable Speech",
+            "• Recommend using Chrome app instead of Safari"
+          ]
+        },
+        android: {
+          title: "Android:",
+          items: [
+            "• Settings → Accessibility → Text-to-Speech → Install Google TTS",
+            "• Use latest version of Chrome browser"
+          ]
+        },
+        common: {
+          title: "Common Checklist:",
+          items: [
+            "• Check system volume and media volume",
+            "• Update browser to latest version",
+            "• Check Wi-Fi connection status"
+          ]
+        }
+      },
+      tips: {
+        title: "✨ TTS Usage Tips",
+        items: [
+          "• Click the 🔊 button next to any text to hear it spoken",
+          "• Mixed Korean-English text is automatically detected and played with appropriate voices",
+          "• Click the button again during playback to stop"
+        ]
+      }
+    },
+    ja: {
+      title: "🔊 音声機能ガイド",
+      mobile: {
+        title: "📱 モバイルでの音声機能最適化",
+        content: "モバイルデバイスで音声機能を最適に使用するには、Chromeブラウザをご利用ください。",
+        items: [
+          "• 推奨ブラウザ: Chrome（iOS、Android両方対応）",
+          "• 韓国語: 完全サポート",
+          "• 英語: ネイティブ発音品質"
+        ]
+      },
+      troubleshoot: {
+        title: "⚠️ 音声機能が動作しない場合",
+        ios: {
+          title: "iOS (iPhone/iPad):",
+          items: [
+            "• 設定 → アクセシビリティ → 読み上げコンテンツ → 音声を有効にする",
+            "• SafariよりもChromeアプリの使用を推奨"
+          ]
+        },
+        android: {
+          title: "Android:",
+          items: [
+            "• 設定 → アクセシビリティ → テキスト読み上げ → Google TTSをインストール",
+            "• Chromeブラウザの最新バージョンを使用"
+          ]
+        },
+        common: {
+          title: "共通確認事項:",
+          items: [
+            "• システム音量とメディア音量を確認",
+            "• ブラウザを最新バージョンに更新",
+            "• Wi-Fi接続状態を確認"
+          ]
+        }
+      },
+      tips: {
+        title: "✨ 音声機能活用のヒント",
+        items: [
+          "• 各テキストの隣にある🔊ボタンをクリックして音声で聞くことができます",
+          "• 韓国語と英語が混在するテキストも自動的に識別して再生されます",
+          "• 再生中にボタンを再度クリックすると停止します"
+        ]
+      }
+    },
+    zh: {
+      title: "🔊 语音功能指南",
+      mobile: {
+        title: "📱 移动设备语音功能优化",
+        content: "为了在移动设备上获得最佳的语音功能体验，请使用Chrome浏览器。",
+        items: [
+          "• 推荐浏览器：Chrome（支持iOS和Android）",
+          "• 韩语：完全支持",
+          "• 英语：母语发音质量"
+        ]
+      },
+      troubleshoot: {
+        title: "⚠️ 如果语音功能无法正常工作",
+        ios: {
+          title: "iOS (iPhone/iPad):",
+          items: [
+            "• 设置 → 辅助功能 → 朗读内容 → 启用语音",
+            "• 建议使用Chrome应用而不是Safari"
+          ]
+        },
+        android: {
+          title: "Android:",
+          items: [
+            "• 设置 → 辅助功能 → 文字转语音 → 安装Google TTS",
+            "• 使用最新版本的Chrome浏览器"
+          ]
+        },
+        common: {
+          title: "常见检查项目:",
+          items: [
+            "• 检查系统音量和媒体音量",
+            "• 将浏览器更新到最新版本",
+            "• 检查Wi-Fi连接状态"
+          ]
+        }
+      },
+      tips: {
+        title: "✨ 语音功能使用技巧",
+        items: [
+          "• 点击任何文本旁边的🔊按钮即可听到语音朗读",
+          "• 韩语和英语混合的文本会自动识别并用相应的语音播放",
+          "• 播放期间再次点击按钮可停止播放"
+        ]
+      }
+    },
+    es: {
+      title: "🔊 Guía de Función de Voz",
+      mobile: {
+        title: "📱 Optimización de TTS en Móvil",
+        content: "Para una experiencia óptima de texto a voz en dispositivos móviles, utilice el navegador Chrome.",
+        items: [
+          "• Navegador Recomendado: Chrome (compatible con iOS y Android)",
+          "• Coreano: Totalmente compatible",
+          "• Inglés: Calidad de pronunciación nativa"
+        ]
+      },
+      troubleshoot: {
+        title: "⚠️ Si la función de voz no funciona",
+        ios: {
+          title: "iOS (iPhone/iPad):",
+          items: [
+            "• Configuración → Accesibilidad → Contenido Hablado → Activar Voz",
+            "• Recomendamos usar la app Chrome en lugar de Safari"
+          ]
+        },
+        android: {
+          title: "Android:",
+          items: [
+            "• Configuración → Accesibilidad → Texto a Voz → Instalar Google TTS",
+            "• Usar la última versión del navegador Chrome"
+          ]
+        },
+        common: {
+          title: "Lista de Verificación Común:",
+          items: [
+            "• Verificar volumen del sistema y volumen multimedia",
+            "• Actualizar navegador a la última versión",
+            "• Verificar estado de conexión Wi-Fi"
+          ]
+        }
+      },
+      tips: {
+        title: "✨ Consejos de Uso de TTS",
+        items: [
+          "• Haga clic en el botón 🔊 junto a cualquier texto para escucharlo",
+          "• El texto mixto coreano-inglés se detecta automáticamente y se reproduce con voces apropiadas",
+          "• Haga clic en el botón nuevamente durante la reproducción para detener"
+        ]
+      }
+    }
+  };
+
   // 프로필 수정을 위한 상태 추가
   const [isEditing, setIsEditing] = useState(false);
   const [nickname, setNickname] = useState('');
@@ -88,6 +338,12 @@ export default function MyPage() {
           setNickname(profileData.nickname || '');
           setNationality(profileData.nationality || ''); 
           setLevel(profileData.level || profileData.starting_level || profileData.current_level || '');
+          
+          // 사용자 국적에 따라 TTS 공지사항 기본 언어 설정
+          if (profileData.nationality) {
+            const defaultTTSLang = getDefaultLanguageByNationality(profileData.nationality);
+            setSelectedTTSLang(defaultTTSLang);
+          }
         }
       }
       setLoadingUser(false);
@@ -389,6 +645,101 @@ export default function MyPage() {
                   <div><span className="font-semibold text-gray-500">가입일:</span><span className="ml-2">{new Date(user.created_at).toLocaleDateString()}</span></div>
                 </div>
               ) : <p>사용자 정보를 불러올 수 없습니다.</p>}
+            </div>
+
+            {/* TTS 음성 기능 다국어 공지사항 카드 */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl shadow-lg p-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-blue-800 flex items-center">
+                  {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].title}
+                </h2>
+                
+                {/* 언어 선택 탭 */}
+                <div className="flex bg-white rounded-lg p-1 border border-blue-200">
+                  {[
+                    { code: 'ko', name: '한국어', flag: '🇰🇷' },
+                    { code: 'en', name: 'English', flag: '🇺🇸' },
+                    { code: 'ja', name: '日本語', flag: '🇯🇵' },
+                    { code: 'zh', name: '中文', flag: '🇨🇳' },
+                    { code: 'es', name: 'Español', flag: '🇪🇸' }
+                  ].map((lang) => (
+                    <button
+                      key={lang.code}
+                      onClick={() => setSelectedTTSLang(lang.code)}
+                      className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                        selectedTTSLang === lang.code
+                          ? 'bg-blue-600 text-white'
+                          : 'text-blue-600 hover:bg-blue-100'
+                      }`}
+                    >
+                      <span className="mr-1">{lang.flag}</span>
+                      {lang.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {/* 모바일 최적화 섹션 */}
+                <div className="bg-white p-4 rounded-lg border border-blue-100">
+                  <h3 className="font-semibold text-blue-700 mb-2">
+                    {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].mobile.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-3">
+                    {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].mobile.content}
+                  </p>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].mobile.items.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+                
+                {/* 문제 해결 섹션 */}
+                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                  <h3 className="font-semibold text-yellow-700 mb-2">
+                    {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.title}
+                  </h3>
+                  <div className="text-sm text-gray-600 space-y-3">
+                    <div>
+                      <strong>{ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.ios.title}</strong>
+                      <ul className="ml-4 mt-1 space-y-1">
+                        {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.ios.items.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <strong>{ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.android.title}</strong>
+                      <ul className="ml-4 mt-1 space-y-1">
+                        {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.android.items.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <strong>{ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.common.title}</strong>
+                      <ul className="ml-4 mt-1 space-y-1">
+                        {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.common.items.map((item, index) => (
+                          <li key={index}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 활용 팁 섹션 */}
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h3 className="font-semibold text-green-700 mb-2">
+                    {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].tips.title}
+                  </h3>
+                  <ul className="text-sm text-gray-600 space-y-1">
+                    {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].tips.items.map((item, index) => (
+                      <li key={index}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
 
             {/* 선생님께 질문 카드 */}
