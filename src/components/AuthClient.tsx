@@ -16,11 +16,17 @@ export default function AuthClient() {
     e.preventDefault();
     setIsSubmitting(true);
     setError(null);
+    
+    // 클라이언트 사이드에서만 실행되도록 확인
+    const redirectUrl = typeof window !== 'undefined' 
+      ? `${window.location.origin}/auth/callback`
+      : `${process.env.NEXT_PUBLIC_SITE_URL || 'https://koreanlearningapp.onrender.com'}/auth/callback`;
+    
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: redirectUrl,
       },
     })
     if (error) {
