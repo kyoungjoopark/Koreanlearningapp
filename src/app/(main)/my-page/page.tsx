@@ -85,7 +85,7 @@ export default function MyPage() {
   // 다국어 TTS 공지사항 내용
   const ttsNotices = {
     ko: {
-      title: "🔊 음성 기능 이용 안내",
+      title: "음성 기능 안내",
       mobile: {
         title: "📱 모바일에서 음성 기능 최적화",
         content: "모바일에서 음성 기능을 원활하게 사용하려면 Chrome 브라우저를 사용해주세요.",
@@ -130,7 +130,7 @@ export default function MyPage() {
       }
     },
     en: {
-      title: "🔊 Text-to-Speech (TTS) Guide",
+      title: "Voice Guide",
       mobile: {
         title: "📱 Mobile TTS Optimization",
         content: "For optimal TTS experience on mobile devices, please use Chrome browser.",
@@ -175,7 +175,7 @@ export default function MyPage() {
       }
     },
     ja: {
-      title: "🔊 音声機能ガイド",
+      title: "音声ガイド",
       mobile: {
         title: "📱 モバイルでの音声機能最適化",
         content: "モバイルデバイスで音声機能を最適に使用するには、Chromeブラウザをご利用ください。",
@@ -220,7 +220,7 @@ export default function MyPage() {
       }
     },
     zh: {
-      title: "🔊 语音功能指南",
+      title: "语音指南",
       mobile: {
         title: "📱 移动设备语音功能优化",
         content: "为了在移动设备上获得最佳的语音功能体验，请使用Chrome浏览器。",
@@ -265,7 +265,7 @@ export default function MyPage() {
       }
     },
     es: {
-      title: "🔊 Guía de Función de Voz",
+      title: "Guía de Voz",
       mobile: {
         title: "📱 Optimización de TTS en Móvil",
         content: "Para una experiencia óptima de texto a voz en dispositivos móviles, utilice el navegador Chrome.",
@@ -648,34 +648,37 @@ export default function MyPage() {
             </div>
 
             {/* TTS 음성 기능 다국어 공지사항 카드 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl shadow-lg p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-blue-800 flex items-center">
-                  {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].title}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl shadow-lg p-4 sm:p-8">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-xl font-bold text-blue-800 mb-3 sm:mb-0">
+                  🔊 {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].title}
                 </h2>
                 
-                {/* 언어 선택 탭 */}
-                <div className="flex bg-white rounded-lg p-1 border border-blue-200">
-                  {[
-                    { code: 'ko', name: '한국어', flag: '🇰🇷' },
-                    { code: 'en', name: 'English', flag: '🇺🇸' },
-                    { code: 'ja', name: '日本語', flag: '🇯🇵' },
-                    { code: 'zh', name: '中文', flag: '🇨🇳' },
-                    { code: 'es', name: 'Español', flag: '🇪🇸' }
-                  ].map((lang) => (
-                    <button
-                      key={lang.code}
-                      onClick={() => setSelectedTTSLang(lang.code)}
-                      className={`px-3 py-2 text-xs font-medium rounded-md transition-colors ${
-                        selectedTTSLang === lang.code
-                          ? 'bg-blue-600 text-white'
-                          : 'text-blue-600 hover:bg-blue-100'
-                      }`}
-                    >
-                      <span className="mr-1">{lang.flag}</span>
-                      {lang.name}
-                    </button>
-                  ))}
+                {/* 언어 선택 탭 - 모바일 최적화 */}
+                <div className="overflow-x-auto">
+                  <div className="flex bg-white rounded-lg p-1 border border-blue-200 min-w-max">
+                    {[
+                      { code: 'ko', name: '한국어', flag: '🇰🇷' },
+                      { code: 'en', name: 'English', flag: '🇺🇸' },
+                      { code: 'ja', name: '日本語', flag: '🇯🇵' },
+                      { code: 'zh', name: '中文', flag: '🇨🇳' },
+                      { code: 'es', name: 'Español', flag: '🇪🇸' }
+                    ].map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => setSelectedTTSLang(lang.code)}
+                        className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                          selectedTTSLang === lang.code
+                            ? 'bg-blue-600 text-white'
+                            : 'text-blue-600 hover:bg-blue-100'
+                        }`}
+                      >
+                        <span className="mr-1">{lang.flag}</span>
+                        <span className="hidden sm:inline">{lang.name}</span>
+                        <span className="sm:hidden">{lang.code.toUpperCase()}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 
