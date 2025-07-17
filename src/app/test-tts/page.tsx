@@ -177,15 +177,15 @@ export default function TTSTestPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h1 className="text-2xl font-bold text-gray-800 mb-6">
-            🔊 TTS 모바일 호환성 테스트
+        <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 text-center">
+            🔊 음성 기능 이용 안내
           </h1>
 
-          {/* 디버그 정보 */}
-          <div className="mb-8">
+          {/* 디버그 정보 - 모바일에서는 숨김 */}
+          <div className="mb-6 sm:mb-8 hidden sm:block">
             <h2 className="text-xl font-semibold mb-4">📊 시스템 정보</h2>
             <div className="bg-gray-100 p-4 rounded-lg overflow-x-auto">
               <table className="w-full text-sm">
@@ -201,8 +201,8 @@ export default function TTSTestPage() {
             </div>
           </div>
 
-          {/* 기본 테스트 */}
-          <div className="mb-8">
+          {/* 기본 테스트 - 모바일에서는 숨김 */}
+          <div className="mb-6 sm:mb-8 hidden sm:block">
             <h2 className="text-xl font-semibold mb-4">🧪 자동 진단 테스트</h2>
             <button
               onClick={runBasicTest}
@@ -223,33 +223,35 @@ export default function TTSTestPage() {
           </div>
 
           {/* TTS 버튼 테스트 */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">🎯 실제 TTS 버튼 테스트</h2>
-            <div className="space-y-4">
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">🎯 음성 재생 테스트</h2>
+            <div className="space-y-3 sm:space-y-4">
               {testCases.map((testCase, index) => (
-                <div key={index} className="flex items-center justify-between bg-gray-50 p-4 rounded-lg">
-                  <div>
-                    <div className="font-medium text-gray-800">{testCase.label}</div>
-                    <div className="text-sm text-gray-600 mt-1">{testCase.text}</div>
+                <div key={index} className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-50 p-3 sm:p-4 rounded-lg gap-3 sm:gap-0">
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-800 text-sm sm:text-base">{testCase.label}</div>
+                    <div className="text-xs sm:text-sm text-gray-600 mt-1 break-all">{testCase.text}</div>
                   </div>
-                  <TTSButton text={testCase.text} size="lg" />
+                  <div className="flex justify-center sm:justify-end">
+                    <TTSButton text={testCase.text} size="md" />
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* 문제 해결 가이드 */}
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">🛠️ 문제 해결 가이드</h2>
-            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-              <h3 className="font-semibold mb-2">모바일에서 TTS가 작동하지 않는 경우:</h3>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li><strong>iOS Safari:</strong> 설정 → 접근성 → 음성 콘텐츠 → 음성 활성화</li>
-                <li><strong>Android:</strong> 설정 → 접근성 → 텍스트 음성 변환 → Google TTS 설치</li>
-                <li><strong>Chrome:</strong> 최신 버전으로 업데이트</li>
-                <li><strong>보안:</strong> HTTPS 연결 사용 (http://는 제한적)</li>
-                <li><strong>권한:</strong> 브라우저 마이크/오디오 권한 허용</li>
-                <li><strong>볼륨:</strong> 시스템 볼륨 및 미디어 볼륨 확인</li>
+          <div className="mb-6 sm:mb-8">
+            <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">🛠️ 문제 해결 가이드</h2>
+            <div className="bg-yellow-50 border border-yellow-200 p-3 sm:p-4 rounded-lg">
+              <h3 className="font-semibold mb-2 text-sm sm:text-base">모바일에서 음성이 나오지 않는 경우:</h3>
+              <ul className="list-disc list-inside space-y-2 text-xs sm:text-sm">
+                <li><strong>📱 iOS Safari:</strong> 설정 → 접근성 → 음성 콘텐츠 → 음성 활성화</li>
+                <li><strong>🤖 Android:</strong> 설정 → 접근성 → 텍스트 음성 변환 → Google TTS 설치</li>
+                <li><strong>🌐 Chrome:</strong> 최신 버전으로 업데이트</li>
+                <li><strong>🔒 보안:</strong> HTTPS 연결 사용 (http://는 제한적)</li>
+                <li><strong>🎧 권한:</strong> 브라우저 오디오 권한 허용</li>
+                <li><strong>🔊 볼륨:</strong> 시스템 볼륨 및 미디어 볼륨 확인</li>
               </ul>
             </div>
           </div>

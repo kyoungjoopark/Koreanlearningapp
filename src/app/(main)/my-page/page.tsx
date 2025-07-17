@@ -642,7 +642,7 @@ export default function MyPage() {
                   )}
                   {/* 이메일과 가입일은 수정 불가 항목으로 항상 표시 */}
                   <div className="col-span-2"><span className="font-semibold text-gray-500">이메일:</span><br/><span className="ml-0 text-sm break-all">{user.email}</span></div>
-                  <div><span className="font-semibold text-gray-500">가입일:</span><span className="ml-2">{new Date(user.created_at).toLocaleDateString()}</span></div>
+                  <div className="col-span-2 sm:col-span-1"><span className="font-semibold text-gray-500">가입일:</span><br className="sm:hidden"/><span className="ml-2 sm:ml-2">{new Date(user.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
                 </div>
               ) : <p>사용자 정보를 불러올 수 없습니다.</p>}
             </div>
