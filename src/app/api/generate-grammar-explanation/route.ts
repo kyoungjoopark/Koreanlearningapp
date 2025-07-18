@@ -207,6 +207,7 @@ export async function POST(request: Request) {
     const insertData = {
       grammar_item: grammarItem,
       explanation: explanationData,  // JSONB 컬럼에 객체 직접 저장
+      language: 'ko',  // 조회 API와 일치하도록 language 컬럼 추가
       created_by: 'ai',
       is_ai_generated: true
     };
