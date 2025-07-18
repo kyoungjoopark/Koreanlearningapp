@@ -387,8 +387,8 @@ export default function UnitPage() {
                 if (dbResponse.ok) {
                     const dbData = await dbResponse.json();
                     if (dbData && dbData.explanation) {
-                        // DB에서 단원해설 로드됨
-                        const formattedFromDb = formatStructuredExplanation(JSON.parse(dbData.explanation));
+                        // DB에서 단원해설 로드됨 (JSONB는 이미 객체 형태)
+                        const formattedFromDb = formatStructuredExplanation(dbData.explanation);
                         setAiUnitTitleExplanation(formattedFromDb);
                         setAiUnitTitleExplanationLoading(false);
                         return; // DB에서 찾았으므로 AI 생성 생략
@@ -460,9 +460,8 @@ export default function UnitPage() {
           if (response.ok) {
             const dbData = await response.json();
             if (dbData && dbData.explanation) {
-              // DB에서 문법 설명 로드됨 (초기 로딩)
-              // DB에서 받은 JSON 객체를 렌더링 가능한 문자열로 변환
-              initialExplanations[grammarItem] = formatStructuredExplanation(JSON.parse(dbData.explanation));
+              // DB에서 문법 설명 로드됨 (초기 로딩) - JSONB는 이미 객체 형태
+              initialExplanations[grammarItem] = formatStructuredExplanation(dbData.explanation);
               continue; // DB에서 찾았으므로 다음 항목으로
             }
           }
@@ -504,8 +503,8 @@ export default function UnitPage() {
       if (dbResponse.ok) {
         const dbData = await dbResponse.json();
         if (dbData && dbData.explanation) {
-          // DB에서 문법 설명 로드됨 (개별 요청)
-          const formattedFromDb = formatStructuredExplanation(JSON.parse(dbData.explanation));
+          // DB에서 문법 설명 로드됨 (개별 요청) - JSONB는 이미 객체 형태
+          const formattedFromDb = formatStructuredExplanation(dbData.explanation);
           setGrammarExplanations(prev => ({ ...prev, [grammarItem]: formattedFromDb }));
           setGrammarExplanationLoading(prev => ({ ...prev, [grammarItem]: false }));
           return; // DB에서 찾았으므로 AI 생성 생략
@@ -763,23 +762,24 @@ export default function UnitPage() {
                     )}
                   </div>
                   <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">
-                    {grammarExplanationLoading[grammarItem] ? '...' : grammarExplanations[grammarItem] || '...'}
+                    {grammarExplanationLoading[grammarItem] 
+                      ? 'AI 설명을 불러오는 중...' 
+                      : grammarExplanations[grammarItem] 
+                        ? grammarExplanations[grammarItem]
+                        : '설명을 생성하려면 아래 버튼을 클릭하세요.'
+                    }
                   </p>
 
-
-                  {/* AI 설명 요청 버튼 */}
-                  <button 
-                    onClick={() => fetchGrammarExplanation(grammarItem, parseInt(unitId))}
-                    disabled={!unitId || grammarExplanationLoading[grammarItem]}
-                    className="mt-4 w-full text-left p-2 rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500 text-sm sm:text-base"
-                  >
-                    {grammarExplanationLoading[grammarItem] 
-                      ? 'AI 설명 생성 중...' 
-                      : grammarExplanations[grammarItem] 
-                        ? '설명 생성 완료' 
-                        : 'AI로 더 자세한 설명 보기'
-                    }
-                  </button>
+                  {/* AI 설명 요청 버튼 - 설명이 없을 때만 표시 */}
+                  {!grammarExplanations[grammarItem] && !grammarExplanationLoading[grammarItem] && (
+                    <button 
+                      onClick={() => fetchGrammarExplanation(grammarItem, parseInt(unitId))}
+                      disabled={!unitId || grammarExplanationLoading[grammarItem]}
+                      className="mt-4 w-full text-left p-2 rounded-md bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors disabled:bg-gray-200 disabled:text-gray-500 text-sm sm:text-base"
+                    >
+                      AI로 더 자세한 설명 보기
+                    </button>
+                  )}
                 </div>
               )})}
             </div>
