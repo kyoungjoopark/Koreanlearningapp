@@ -201,17 +201,23 @@ export async function POST(request: Request) {
     
     const explanationString = JSON.stringify(explanationData);
     console.log(`[DB_SAVE] Explanation string length: ${explanationString.length}`);
+    console.log(`[DB_SAVE] Explanation string preview: ${explanationString.substring(0, 100)}...`);
+    console.log(`[DB_SAVE] Supabase URL: ${supabaseUrl ? 'SET' : 'MISSING'}`);
+    console.log(`[DB_SAVE] Supabase Key: ${supabaseServiceKey ? 'SET' : 'MISSING'}`);
+    
+    const insertData = {
+      grammar_item: grammarItem,
+      explanation: explanationString,
+      language: 'ko',
+      explanation_type: 'grammar',
+      created_by: 'ai'
+    };
+    console.log(`[DB_SAVE] Insert data:`, insertData);
     
     try {
       const { data: saveData, error: dbError } = await supabase
         .from('grammar_explanations')
-        .upsert({
-          grammar_item: grammarItem,
-          explanation: explanationString,
-          language: 'ko',
-          explanation_type: 'grammar',
-          created_by: 'ai'
-        }, {
+        .upsert(insertData, {
           onConflict: 'grammar_item,language'
         });
 
