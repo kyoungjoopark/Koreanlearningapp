@@ -199,27 +199,23 @@ export async function POST(request: Request) {
       return NextResponse.json(explanationData);
     }
     
-    const explanationString = JSON.stringify(explanationData);
-    console.log(`[DB_SAVE] Explanation string length: ${explanationString.length}`);
-    console.log(`[DB_SAVE] Explanation string preview: ${explanationString.substring(0, 100)}...`);
+    console.log(`[DB_SAVE] Explanation data:`, explanationData);
     console.log(`[DB_SAVE] Supabase URL: ${supabaseUrl ? 'SET' : 'MISSING'}`);
     console.log(`[DB_SAVE] Supabase Key: ${supabaseServiceKey ? 'SET' : 'MISSING'}`);
     
+    // JSONB 컬럼에 저장하기 위해 객체 형태로 저장
     const insertData = {
       grammar_item: grammarItem,
-      explanation: explanationString,
-      language: 'ko',
-      explanation_type: 'grammar',
-      created_by: 'ai'
+      explanation: explanationData,  // JSONB 컬럼에 객체 직접 저장
+      created_by: 'ai',
+      is_ai_generated: true
     };
     console.log(`[DB_SAVE] Insert data:`, insertData);
     
     try {
       const { data: saveData, error: dbError } = await supabase
         .from('grammar_explanations')
-        .upsert(insertData, {
-          onConflict: 'grammar_item,language'
-        });
+        .insert(insertData);
 
       if (dbError) {
         console.error(`[DB_SAVE_ERROR] 구조화된 문법 설명 DB 저장 실패 for "${grammarItem}":`, dbError);
