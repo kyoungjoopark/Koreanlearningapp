@@ -209,7 +209,7 @@ export async function POST(request: Request) {
       explanation: explanationData,  // JSONB 컬럼에 객체 직접 저장
       language: 'ko',  // 조회 API와 일치하도록 language 컬럼 추가
       created_by: 'ai',
-      is_ai_generated: true
+      generated_by_ai: true  // 실제 테이블 컬럼명에 맞게 수정
     };
     console.log(`[DB_SAVE] Insert data:`, insertData);
     
