@@ -36,18 +36,7 @@ export async function GET(
       return NextResponse.json({ error: `Unit with id ${unitId} not found` }, { status: 404 });
     }
 
-    // === START Temporary modification for testing ===
-    /* // 임시 코드 최종 주석 처리 시작
-    if (data && String(unitId) === '2') { 
-      console.log('[TEMP DEBUG 최종 제거 전 주석] Original data.문법 for unitId 2 before forcing:', data.문법);
-      console.log('[TEMP DEBUG 최종 제거 전 주석] Original data.부가문법 for unitId 2 before forcing:', data.부가문법);
-      data.문법 = "이/가;이/가 아니다";
-      data.부가문법 = "이/가;이/가 아니다"; 
-      console.log('[TEMP DEBUG 최종 제거 전 주석] Forced data.문법 for unitId 2 to:', data.문법);
-      console.log('[TEMP DEBUG 최종 제거 전 주석] Forced data.부가문법 for unitId 2 to:', data.부가문법);
-    }
-    */ // 임시 코드 최종 주석 처리 끝
-    // === END Temporary modification for testing ===
+    // 단원 데이터 반환
 
     return NextResponse.json(data, {
       headers: {

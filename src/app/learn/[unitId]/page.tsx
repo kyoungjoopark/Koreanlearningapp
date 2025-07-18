@@ -194,15 +194,49 @@ export default function UnitPage() {
 
     // 새로운 통합 형식 (grammer_and_structure)
     if (explanation && explanation.grammar_and_structure) {
-      let content = `${explanation.overall_meaning}\n\n`;
-      content += `[문법과 문장 구조]\n${explanation.grammar_and_structure}\n`;
+      // 문법 구조 포맷 처리
+      
+      // overall_meaning에서 영어 번역 부분을 한 줄 아래로 분리
+      let overallMeaning = explanation.overall_meaning || '';
+      const englishRegex = /\s*\(English:\s*([^)]+)\)/i;
+      const englishMatch = overallMeaning.match(englishRegex);
+      
+      if (englishMatch) {
+        // 영어 부분을 제거하고 한 줄 아래에 깔끔하게 추가
+        const koreanPart = overallMeaning.replace(englishRegex, '').trim();
+        const englishPart = englishMatch[1].trim();
+        overallMeaning = `${koreanPart}\n${englishPart}`;
+      }
+      
+      let content = `${overallMeaning}\n\n`;
+      
+      // grammar_and_structure에서 영어 번역 부분을 깔끔하게 분리
+      let grammarStructure = explanation.grammar_and_structure || '';
+      
+      // 새로운 형식의 영어 번역 패턴을 처리
+      // 예시: (English: Grammatical Function: ... Structural Role: ... Nuance: ...)
+      const newFormatEnglishRegex = /\s*\(English:\s*([\s\S]+?)\)\s*$/i;
+      const grammarEnglishMatch = grammarStructure.match(newFormatEnglishRegex);
+      
+      if (grammarEnglishMatch) {
+        // 영어 부분을 제거하고 한 줄 아래에 깔끔하게 추가
+        const grammarKoreanPart = grammarStructure.replace(grammarEnglishMatch[0], '').trim();
+        const grammarEnglishPart = grammarEnglishMatch[1].trim();
+        grammarStructure = `${grammarKoreanPart}\n\n${grammarEnglishPart}`;
+      }
+      
+      content += `[문법과 문장 구조]\n${grammarStructure}\n`;
       
       content += `\n[응용 예문]\n`;
       explanation.practical_examples.forEach((ex: any) => {
-        if (ex.title && ex.example?.korean && ex.example?.english) {
-          content += `- ${ex.title}: ${ex.example.korean} (${ex.example.english})\n`;
-        } else if (ex.example?.korean && ex.example?.english) {
-          content += `- ${ex.example.korean} (${ex.example.english})\n`;
+        if (ex.title && ex.example?.korean) {
+          const englishPart = ex.example?.english ? ` (${ex.example.english})` : '';
+          content += `- ${ex.title}: ${ex.example.korean}${englishPart}\n`;
+        } else if (ex.example?.korean) {
+          const englishPart = ex.example?.english ? ` (${ex.example.english})` : '';
+          content += `- ${ex.example.korean}${englishPart}\n`;
+        } else if (typeof ex === 'string') {
+          content += `- ${ex}\n`;
         }
       });
       return content.replace(/\*+/g, '').replace(/^#{1,6}\s*/gm, ''); // Markdown Bold/Italic 및 헤더 제거
@@ -220,10 +254,14 @@ export default function UnitPage() {
       }
       content += `\n[응용 예문]\n`;
       explanation.practical_examples.forEach((ex: any) => {
-        if (ex.title && ex.example?.korean && ex.example?.english) {
-          content += `- ${ex.title}: ${ex.example.korean} (${ex.example.english})\n`;
-        } else if (ex.example?.korean && ex.example?.english) {
-          content += `- ${ex.example.korean} (${ex.example.english})\n`;
+        if (ex.title && ex.example?.korean) {
+          const englishPart = ex.example?.english ? ` (${ex.example.english})` : '';
+          content += `- ${ex.title}: ${ex.example.korean}${englishPart}\n`;
+        } else if (ex.example?.korean) {
+          const englishPart = ex.example?.english ? ` (${ex.example.english})` : '';
+          content += `- ${ex.example.korean}${englishPart}\n`;
+        } else if (typeof ex === 'string') {
+          content += `- ${ex}\n`;
         }
       });
       return content.replace(/\*+/g, '').replace(/^#{1,6}\s*/gm, ''); // Markdown Bold/Italic 및 헤더 제거
@@ -239,42 +277,12 @@ export default function UnitPage() {
     setBackLink(newLink);
   };
 
-  // 특정 문법 항목에 대한 미리 정의된 기본 설명
-  const predefinedGrammarDetails: Record<string, { example: string; basicExplanation: string }> = {
-    "N은/는": {
-      example: "저는 한국 사람이에요.",
-      basicExplanation: "'은/는'은 문장의 주제를 나타내거나 다른 것과 대조할 때 사용해요. 명사 뒤에 붙으며, 명사의 마지막 글자에 받침이 없으면 '는' (예: 저 + 는 -> 저는), 받침이 있으면 '은' (예: 사람 + 은 -> 사람은)을 사용합니다."
-    },
-    "은": { // "은"에 대한 설명 추가
-      example: "저는 한국 사람이에요.", // "은"이 사용된 예문 (실제로는 "는"이지만 대표 예시로 사용)
-      basicExplanation: "'은/는'은 문장의 주제를 나타내거나 다른 것과 대조할 때 사용해요. 명사 뒤에 붙으며, '은'은 주로 받침이 있는 명사 뒤에 사용됩니다. (예: 사람 + 은 -> 사람은)"
-    },
-    "는": { // "는"에 대한 설명 추가
-      example: "저는 한국 사람이에요.",
-      basicExplanation: "'은/는'은 문장의 주제를 나타내거나 다른 것과 대조할 때 사용해요. 명사 뒤에 붙으며, '는'은 주로 받침이 없는 명사 뒤에 사용됩니다. (예: 저 + 는 -> 저는)"
-    },
-    "이다": { // 스크린샷에 "이다"도 보이므로 기본 설명 추가
-        example: "이것은 책이에요.",
-        basicExplanation: "'이다'는 '~입니다', '~이에요/예요' 형태로, 주어가 무엇인지 또는 어떤 상태인지를 설명하는 서술격 조사입니다. 명사 뒤에 붙어 문장을 마무리합니다. (예: 학생 + 이다 -> 학생이다, 학생이에요)"
-    },
-    "이/가": { // 추가
-      example: "사과가 맛있어요. 이것이 책이에요.",
-      basicExplanation: "'이/가'는 문장의 주어를 나타내는 주격 조사입니다. 주어가 되는 명사 뒤에 붙습니다. 명사의 마지막 글자에 받침이 없으면 '가' (예: 사과 + 가 -> 사과가), 받침이 있으면 '이' (예: 책 + 이 -> 책이)를 사용합니다."
-    },
-    "이/가 아니다": { // 추가
-      example: "저는 학생이 아니에요. 이것은 연필이 아니에요.",
-      basicExplanation: "'이/가 아니다'는 주어가 특정 명사가 아님을 나타내는 표현입니다. '명사 + 이/가 아니다' 형태로 사용됩니다. '아니다'는 '이다'의 부정형입니다."
-    }
-    // 필요하다면 다른 문법 항목에 대한 기본 설명도 추가 가능
-  };
+  // 특정 문법 항목에 대한 미리 정의된 기본 설명 - AI 설명을 우선하기 위해 완전히 비움
+  const predefinedGrammarDetails: Record<string, { example: string; basicExplanation: string }> = {};
 
-  // 단원의 제목(핵심 문장)에 대한 설명
+  // 단원의 제목(핵심 문장)에 대한 설명 - AI 설명만 사용하기 위해 빈 객체로 설정
   const unitKeySentenceExplanation: Record<string, { title: string; explanation: string; }> = {
-    "저는 한국 사람이에요.": { // unit.제목이 이 문자열과 일치할 경우
-      title: "저는 한국 사람이에요.",
-      explanation: "이 문장은 자신을 소개할 때 사용하는 기본적인 표현입니다. '저'는 자신을 낮추어 부르는 말이고, '는'은 문장의 주제를 나타냅니다. '한국 사람'은 국적을, '이에요'는 명사 뒤에 붙어 '입니다'와 같이 서술하는 역할을 합니다. 이 문장에서는 주로 'N은/는' 토픽 조사와 'N이다' 서술격 조사의 활용을 배웁니다."
-    }
-    // 다른 unit.제목에 대한 설명을 추가할 수 있습니다.
+    // 모든 기본 설명을 제거하여 AI 설명만 사용하도록 함
   };
 
   const renderExplanation = (
@@ -289,7 +297,7 @@ export default function UnitPage() {
     if (error) {
       return <p className="text-red-500">AI 설명 로딩 중 오류: {error}</p>;
     }
-    const explanation = predefined || ai;
+    const explanation = ai || predefined;
 
     if (!explanation) {
       return <p className="text-gray-500 italic">설명이 없습니다.</p>;
@@ -322,7 +330,7 @@ export default function UnitPage() {
 
     async function fetchUnitDetails() {
       if (!unitId) return;
-      console.log(`[ULP_DEBUG] fetchUnitDetails called for unitId: ${unitId}`);
+      // 단원 정보 로딩
       setLoading(true);
       setError(null);
       try {
@@ -341,7 +349,7 @@ export default function UnitPage() {
           throw new Error("해당 ID의 단원을 찾을 수 없습니다.");
         }
 
-        console.log("[ULP_DATA] Fetched unit data:", data);
+        // 단원 데이터 로딩 완료
         setUnit(data);
         
         const repCourse = getRepresentativeCourseName(data.과목);
@@ -363,16 +371,37 @@ export default function UnitPage() {
         }
         setCombinedGrammar(Array.from(grammarSet));
 
-        // --- 고급 레벨 주요 표현 AI 설명 로직 복원 ---
+        // --- 단원해설 캐싱 로직 (DB 우선 확인) ---
         const predefinedExp = unitKeySentenceExplanation[data.제목];
         if (predefinedExp) {
             setAiUnitTitleExplanation(predefinedExp.explanation);
         } else {
             setAiUnitTitleExplanationLoading(true);
             setAiUnitTitleExplanationError(null);
-            const isAdvanced = data.과목.startsWith('고급');
-
+            
+            // 1단계: DB에서 기존 단원해설 확인
             try {
+                const dbQueryTitle = encodeURIComponent(data.제목);
+                const dbResponse = await fetch(`/api/grammar-explanations/${dbQueryTitle}?lang=ko`);
+                
+                if (dbResponse.ok) {
+                    const dbData = await dbResponse.json();
+                    if (dbData && dbData.explanation) {
+                        // DB에서 단원해설 로드됨
+                        const formattedFromDb = formatStructuredExplanation(JSON.parse(dbData.explanation));
+                        setAiUnitTitleExplanation(formattedFromDb);
+                        setAiUnitTitleExplanationLoading(false);
+                        return; // DB에서 찾았으므로 AI 생성 생략
+                    }
+                }
+            } catch (dbError) {
+                // DB에 단원해설 없음, AI 생성 진행
+            }
+
+            // 2단계: DB에 없으면 AI 생성
+            const isAdvanced = data.과목.startsWith('고급');
+            try {
+                // 단원해설 AI 생성 시작
                 const res = await fetch('/api/generate-grammar-explanation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -421,31 +450,31 @@ export default function UnitPage() {
     const fetchInitialExplanations = async () => {
       if (combinedGrammar.length === 0) return;
 
-      console.log("[ULP_DEBUG] Fetching initial explanations for:", combinedGrammar);
+      // 초기 문법 설명 로딩
       const initialExplanations: Record<string, string> = {};
       for (const grammarItem of combinedGrammar) {
-        // 먼저 기본 설명을 확인
-        if (predefinedGrammarDetails[grammarItem]) {
-          initialExplanations[grammarItem] = predefinedGrammarDetails[grammarItem].basicExplanation;
-        } else {
-          // 기본 설명이 없으면 DB에서 AI가 생성한 설명을 찾음
-          try {
-            const dbQueryGrammar = encodeURIComponent(grammarItem);
-            const response = await fetch(`/api/grammar-explanations/${dbQueryGrammar}?lang=ko`);
-            if (response.ok) {
-              const dbData = await response.json();
-              if (dbData && dbData.explanation) {
-                // [FIX] DB에서 받은 JSON 객체를 렌더링 가능한 문자열로 변환
-                initialExplanations[grammarItem] = formatStructuredExplanation(dbData.explanation);
-              }
+        // 1순위: DB에서 기존 설명 확인 (Supabase 우선)
+        try {
+          const dbQueryGrammar = encodeURIComponent(grammarItem);
+          const response = await fetch(`/api/grammar-explanations/${dbQueryGrammar}?lang=ko`);
+          if (response.ok) {
+            const dbData = await response.json();
+            if (dbData && dbData.explanation) {
+              // DB에서 문법 설명 로드됨 (초기 로딩)
+              // DB에서 받은 JSON 객체를 렌더링 가능한 문자열로 변환
+              initialExplanations[grammarItem] = formatStructuredExplanation(JSON.parse(dbData.explanation));
+              continue; // DB에서 찾았으므로 다음 항목으로
             }
-          } catch (error) {
-            console.error(`[ULP_ERROR] Error fetching initial explanation for ${grammarItem}:`, error);
           }
+        } catch (error) {
+          console.error(`[ULP_ERROR] Error fetching initial explanation for ${grammarItem}:`, error);
         }
+        
+        // 2순위: DB에 없으면 빈 문자열로 설정 (AI 버튼 클릭 시 생성)
+        // DB에 문법 설명 없음, AI 생성 대기
       }
       setGrammarExplanations(initialExplanations);
-      console.log("[ULP_DEBUG] Initial explanations loaded:", initialExplanations);
+      // 초기 설명 로딩 완료
     };
 
     fetchInitialExplanations();
@@ -463,11 +492,32 @@ export default function UnitPage() {
       return;
     }
 
-    console.log(`[ULP_AI_FETCH] Fetching explanation for "${grammarItem}"`);
+    // 문법 설명 요청
     setGrammarExplanationLoading(prev => ({ ...prev, [grammarItem]: true }));
     setGrammarExplanationError(prev => ({ ...prev, [grammarItem]: null }));
 
+    // 1단계: DB에서 기존 설명 확인 (Supabase 우선)
     try {
+      const dbQueryGrammar = encodeURIComponent(grammarItem);
+      const dbResponse = await fetch(`/api/grammar-explanations/${dbQueryGrammar}?lang=ko`);
+      
+      if (dbResponse.ok) {
+        const dbData = await dbResponse.json();
+        if (dbData && dbData.explanation) {
+          // DB에서 문법 설명 로드됨 (개별 요청)
+          const formattedFromDb = formatStructuredExplanation(JSON.parse(dbData.explanation));
+          setGrammarExplanations(prev => ({ ...prev, [grammarItem]: formattedFromDb }));
+          setGrammarExplanationLoading(prev => ({ ...prev, [grammarItem]: false }));
+          return; // DB에서 찾았으므로 AI 생성 생략
+        }
+      }
+    } catch (dbError) {
+      // DB에 문법 설명 없음, AI 생성 진행
+    }
+
+    // 2단계: DB에 없으면 AI 생성
+    try {
+      // AI 문법 설명 생성 시작
       const response = await fetch('/api/generate-grammar-explanation', {
         method: 'POST',
         headers: {
@@ -489,7 +539,7 @@ export default function UnitPage() {
       }
 
       const result = await response.json();
-      console.log(`[ULP_AI_RESULT] Explanation for "${grammarItem}":`, result);
+      // AI 설명 생성 완료
       
       const formattedExplanation = formatStructuredExplanation(result);
       
@@ -683,7 +733,7 @@ export default function UnitPage() {
                 </div>
                 <p className="text-sm sm:text-base text-gray-700 whitespace-pre-wrap">
                   {renderExplanation(
-                      unitKeySentenceExplanation[unit.제목]?.explanation,
+                      undefined, // 기본 설명 사용 안함, AI 설명만 사용
                       aiUnitTitleExplanation,
                       aiUnitTitleExplanationLoading,
                       aiUnitTitleExplanationError

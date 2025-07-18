@@ -584,16 +584,32 @@ export default function MyPage() {
                   {isEditing ? (
                     <>
                       <div>
-                        <label className="block text-sm font-medium text-gray-500">이름</label>
-                        <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/>
+                        <label className="block text-sm font-medium text-gray-500 mb-2">이름</label>
+                        <input 
+                          type="text" 
+                          value={name} 
+                          onChange={(e) => setName(e.target.value)} 
+                          className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-korean-500 focus:border-korean-500 focus:outline-none"
+                          placeholder="이름을 입력하세요"
+                        />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-500">닉네임</label>
-                        <input type="text" value={nickname} onChange={(e) => setNickname(e.target.value)} className="mt-1 w-full p-2 border rounded-md"/>
+                        <label className="block text-sm font-medium text-gray-500 mb-2">닉네임</label>
+                        <input 
+                          type="text" 
+                          value={nickname} 
+                          onChange={(e) => setNickname(e.target.value)} 
+                          className="w-full p-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-korean-500 focus:border-korean-500 focus:outline-none"
+                          placeholder="닉네임을 입력하세요"
+                        />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-500">국적</label>
-                        <select value={nationality} onChange={(e) => setNationality(e.target.value)} className="mt-1 w-full p-2 border rounded-md bg-white">
+                        <label className="block text-sm font-medium text-gray-500 mb-2">국적</label>
+                        <select 
+                          value={nationality} 
+                          onChange={(e) => setNationality(e.target.value)} 
+                          className="w-full p-3 text-base border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-korean-500 focus:border-korean-500 focus:outline-none"
+                        >
                           <option value="">국적 선택</option>
                           <option value="Korea">Korea (한국)</option>
                           <option value="China">China (중국)</option>
@@ -620,8 +636,12 @@ export default function MyPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-500">시작 레벨</label>
-                        <select value={level} onChange={(e) => setLevel(e.target.value)} className="mt-1 w-full p-2 border rounded-md bg-white">
+                        <label className="block text-sm font-medium text-gray-500 mb-2">시작 레벨</label>
+                        <select 
+                          value={level} 
+                          onChange={(e) => setLevel(e.target.value)} 
+                          className="w-full p-3 text-base border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-korean-500 focus:border-korean-500 focus:outline-none"
+                        >
                           <option value="">레벨 선택</option>
                           <option value="초급1">초급 1</option>
                           <option value="초급2">초급 2</option>
@@ -641,57 +661,56 @@ export default function MyPage() {
                     </>
                   )}
                   {/* 이메일과 가입일은 수정 불가 항목으로 항상 표시 */}
-                  <div className="col-span-2"><span className="font-semibold text-gray-500">이메일:</span><br/><span className="ml-0 text-sm break-all">{user.email}</span></div>
-                  <div className="col-span-2 sm:col-span-1"><span className="font-semibold text-gray-500">가입일:</span><br className="sm:hidden"/><span className="ml-2 sm:ml-2">{new Date(user.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
+                                        <div className="sm:col-span-2"><span className="font-semibold text-gray-500">이메일:</span><br/><span className="ml-0 text-sm break-all">{user.email}</span></div>
+                      <div className="sm:col-span-2"><span className="font-semibold text-gray-500">가입일:</span><span className="ml-2">{new Date(user.created_at).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</span></div>
                 </div>
               ) : <p>사용자 정보를 불러올 수 없습니다.</p>}
             </div>
 
             {/* TTS 음성 기능 다국어 공지사항 카드 */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl shadow-lg p-4 sm:p-8">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
-                <h2 className="text-lg sm:text-xl font-bold text-blue-800 mb-3 sm:mb-0">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl shadow-lg p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4 gap-4">
+                <h2 className="text-lg font-bold text-blue-800">
                   🔊 {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].title}
                 </h2>
                 
-                {/* 언어 선택 탭 - 모바일 최적화 */}
-                <div className="overflow-x-auto">
-                  <div className="flex bg-white rounded-lg p-1 border border-blue-200 min-w-max">
+                {/* 언어 선택 탭 - 더 작고 컴팩트하게 */}
+                <div className="flex-shrink-0">
+                  <div className="flex bg-white rounded-lg p-1 border border-blue-200 text-xs">
                     {[
                       { code: 'ko', name: '한국어', flag: '🇰🇷' },
-                      { code: 'en', name: 'English', flag: '🇺🇸' },
-                      { code: 'ja', name: '日本語', flag: '🇯🇵' },
-                      { code: 'zh', name: '中文', flag: '🇨🇳' },
-                      { code: 'es', name: 'Español', flag: '🇪🇸' }
+                      { code: 'en', name: 'EN', flag: '🇺🇸' },
+                      { code: 'ja', name: 'JP', flag: '🇯🇵' },
+                      { code: 'zh', name: 'CN', flag: '🇨🇳' },
+                      { code: 'es', name: 'ES', flag: '🇪🇸' }
                     ].map((lang) => (
                       <button
                         key={lang.code}
                         onClick={() => setSelectedTTSLang(lang.code)}
-                        className={`px-2 sm:px-3 py-1.5 sm:py-2 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
+                        className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                           selectedTTSLang === lang.code
                             ? 'bg-blue-600 text-white'
                             : 'text-blue-600 hover:bg-blue-100'
                         }`}
                       >
                         <span className="mr-1">{lang.flag}</span>
-                        <span className="hidden sm:inline">{lang.name}</span>
-                        <span className="sm:hidden">{lang.code.toUpperCase()}</span>
+                        <span>{lang.name}</span>
                       </button>
                     ))}
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* 모바일 최적화 섹션 */}
-                <div className="bg-white p-4 rounded-lg border border-blue-100">
-                  <h3 className="font-semibold text-blue-700 mb-2">
+                <div className="bg-white p-3 rounded-lg border border-blue-100">
+                  <h3 className="font-semibold text-blue-700 mb-2 text-sm">
                     {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].mobile.title}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <p className="text-xs text-gray-600 mb-2">
                     {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].mobile.content}
                   </p>
-                  <ul className="text-sm text-gray-600 space-y-1">
+                  <ul className="text-xs text-gray-600 space-y-1">
                     {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].mobile.items.map((item, index) => (
                       <li key={index}>{item}</li>
                     ))}
@@ -699,14 +718,14 @@ export default function MyPage() {
                 </div>
                 
                 {/* 문제 해결 섹션 */}
-                <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-                  <h3 className="font-semibold text-yellow-700 mb-2">
+                <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                  <h3 className="font-semibold text-yellow-700 mb-2 text-sm">
                     {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.title}
                   </h3>
-                  <div className="text-sm text-gray-600 space-y-3">
+                  <div className="text-xs text-gray-600 space-y-2">
                     <div>
                       <strong>{ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.ios.title}</strong>
-                      <ul className="ml-4 mt-1 space-y-1">
+                      <ul className="ml-3 mt-1 space-y-1">
                         {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.ios.items.map((item, index) => (
                           <li key={index}>{item}</li>
                         ))}
@@ -714,7 +733,7 @@ export default function MyPage() {
                     </div>
                     <div>
                       <strong>{ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.android.title}</strong>
-                      <ul className="ml-4 mt-1 space-y-1">
+                      <ul className="ml-3 mt-1 space-y-1">
                         {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.android.items.map((item, index) => (
                           <li key={index}>{item}</li>
                         ))}
@@ -722,7 +741,7 @@ export default function MyPage() {
                     </div>
                     <div>
                       <strong>{ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.common.title}</strong>
-                      <ul className="ml-4 mt-1 space-y-1">
+                      <ul className="ml-3 mt-1 space-y-1">
                         {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].troubleshoot.common.items.map((item, index) => (
                           <li key={index}>{item}</li>
                         ))}
@@ -732,11 +751,11 @@ export default function MyPage() {
                 </div>
 
                 {/* 활용 팁 섹션 */}
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <h3 className="font-semibold text-green-700 mb-2">
+                <div className="bg-green-50 p-3 rounded-lg border border-green-200">
+                  <h3 className="font-semibold text-green-700 mb-2 text-sm">
                     {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].tips.title}
                   </h3>
-                  <ul className="text-sm text-gray-600 space-y-1">
+                  <ul className="text-xs text-gray-600 space-y-1">
                     {ttsNotices[selectedTTSLang as keyof typeof ttsNotices].tips.items.map((item, index) => (
                       <li key={index}>{item}</li>
                     ))}

@@ -7,9 +7,7 @@ function checkEnvironmentVariables() {
   const supabaseUrl = process.env.NEXT_PUBLIC_LEARNING_SUPABASE_URL;
   const supabaseServiceKey = process.env.LEARNING_SUPABASE_SERVICE_ROLE_KEY;
   
-  console.log('[API] Environment variables check:');
-  console.log('[API] NEXT_PUBLIC_LEARNING_SUPABASE_URL:', supabaseUrl ? 'SET' : 'MISSING');
-  console.log('[API] LEARNING_SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'SET' : 'MISSING');
+  // 환경변수 상태 확인
   
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('[API] Missing environment variables:', { 

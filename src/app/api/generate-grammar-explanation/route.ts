@@ -7,13 +7,7 @@ const supabaseUrl = process.env.NEXT_PUBLIC_LEARNING_SUPABASE_URL;
 const supabaseServiceKey = process.env.LEARNING_SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl!, supabaseServiceKey!);
 
-// 디버깅: 환경변수 확인
-console.log('=== DEBUG: API KEY INFO ===');
-console.log('OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
-console.log('OPENAI_API_KEY length:', process.env.OPENAI_API_KEY?.length || 0);
-console.log('OPENAI_API_KEY suffix:', process.env.OPENAI_API_KEY?.slice(-4) || 'none');
-console.log('Working Directory:', process.cwd());
-console.log('==========================');
+// 환경변수 확인
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -46,6 +40,11 @@ export async function POST(request: Request) {
     
     // --- 조회한 데이터로 고급 레벨 및 주요 표현 여부 판단 ---
     const isAdvancedLevel = unitData.단계 && unitData.단계.startsWith('고급');
+    // 초급1,2 중급1,2만 영어 번역 대상
+    const needsEnglishTranslation = unitData.단계 && (
+      unitData.단계 === '초급1' || unitData.단계 === '초급2' || 
+      unitData.단계 === '중급1' || unitData.단계 === '중급2'
+    );
     const isMainExpression = unitData.제목 === grammarItem;
 
     const systemMessage = `당신은 한국어 문법을 가르치는 AI 전문가입니다. 복잡한 JSON 구조 요청을 정확히 따르며, 문법 규칙에 대한 깊은 지식을 바탕으로 설명과 예문을 생성해야 합니다.
@@ -139,8 +138,13 @@ export async function POST(request: Request) {
 
         **분석 가이드라인:**
         1.  **핵심**: '**${grammarItem}**' 표현 자체를 하나의 단위로 보고, 그 의미와 사용법, 구조를 통합적으로 설명해야 합니다. **절대로 '${grammarItem}'을 더 작은 문법 단위로 쪼개서 개별적으로 설명하지 마세요.** 예를 들어, '-는 한이 있어도'를 설명할 때 '-는'과 '한이 있어도'를 분리해서 설명하면 안 됩니다.
-        2.  **통합 설명**: 문법적 기능, 문장 내에서의 구조적 역할, 그리고 어떤 뉘앙스를 가지는지 종합적으로 설명합니다. Markdown을 사용하여 설명의 가독성을 높여주세요.
+        2.  **통합 설명**: 문법적 기능, 문장 내에서의 구조적 역할, 그리고 어떤 뉘앙스를 가지는지 종합적으로 설명합니다. 각 항목 앞에 bullet point(•)를 사용하여 구조화하고, Markdown을 사용하여 설명의 가독성을 높여주세요.
         3.  **응용 예문**: 학습자가 배운 내용을 다른 상황에서도 사용할 수 있도록, '**${grammarItem}**'을 사용한 새로운 예문을 제공합니다.
+        ${needsEnglishTranslation ? `4.  **영어 번역 필수**: 초급1,2 중급1,2 학습자를 위해 다음 형식을 **정확히** 따라주세요:
+            - overall_meaning: "한국어 설명 (English: 영어 번역)"
+            - grammar_and_structure: "• **문법적 기능**: 한국어 설명\\n• **구조적 역할**: 한국어 설명\\n• **뉘앙스**: 한국어 설명\\n\\n(English:\\n• **Grammatical Function**: 영어 설명\\n• **Structural Role**: 영어 설명\\n• **Nuance**: 영어 설명)"
+            - practical_examples: 각 예문에 영어 번역 포함
+            - **절대 금지**: 한국어 설명 중간에 영어를 끼워 넣지 마세요. 반드시 한국어를 완전히 끝낸 후 영어를 추가하세요.` : '4.  **예문 번역**: 모든 한국어 예문에는 정확한 영어 번역을 반드시 포함해야 합니다.'}
 
         **!!! 절대 규칙: 모든 설명과 예문은 '주요 표현'("${grammarItem}")을 중심으로 이루어져야 합니다. 이 규칙은 다른 어떤 지시사항보다 중요하며, 절대 어겨서는 안 됩니다. !!!**
 
@@ -149,7 +153,7 @@ export async function POST(request: Request) {
           "title_sentence": "${grammarItem}",
           "explanation": {
             "overall_meaning": "string (주요 표현 문장 전체의 의미와 사용 상황에 대한 간략한 설명)",
-            "grammar_and_structure": "string (핵심 규칙: '${grammarItem}' 자체의 문법적 기능, 구조, 뉘앙스에 대한 통합적 설명. Markdown을 사용하여 가독성을 높여주세요.)",
+            "grammar_and_structure": "string (핵심 규칙: '${grammarItem}' 자체의 문법적 기능, 구조, 뉘앙스에 대한 통합적 설명. 형식: • **문법적 기능**: 설명... • **구조적 역할**: 설명... • **뉘앙스**: 설명...)",
             "practical_examples": [
               {
                 "title": "string (응용 예문의 소제목, 예: '강한 의지를 나타내는 다른 상황')",
@@ -164,8 +168,7 @@ export async function POST(request: Request) {
       `;
     }
 
-    console.log("--- OpenAI API 요청 프롬프트 ---");
-    console.log(detailedPrompt);
+    // OpenAI API 요청
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -183,25 +186,46 @@ export async function POST(request: Request) {
       throw new Error("AI로부터 설명을 받지 못했습니다.");
     }
 
-    console.log("--- OpenAI API 응답 (JSON 문자열) ---");
-    console.log(explanationJsonString);
+    // OpenAI API 응답 처리
 
     const explanationData = JSON.parse(explanationJsonString);
 
     // 응답 받은 설명을 DB에 저장
-    const { error: dbError } = await supabase
-      .from('grammar_explanations')
-      .upsert({
-        grammar_item: grammarItem,
-        explanation: explanationData, 
-        language: 'ko',
-        created_by: 'openai_gpt-4o'
-      });
-
-    if (dbError) {
-      console.error('구조화된 문법 설명 DB 저장 실패:', dbError);
-      // DB 저장 실패가 전체 프로세스를 중단시켜서는 안 되므로, 에러 로깅 후 정상 진행
+    console.log(`[DB_SAVE] Attempting to save grammar explanation for "${grammarItem}"`);
+    
+    // 데이터 검증
+    if (!explanationData) {
+      console.error(`[DB_SAVE_ERROR] explanationData is null or undefined for "${grammarItem}"`);
+      return NextResponse.json(explanationData);
     }
+    
+    const explanationString = JSON.stringify(explanationData);
+    console.log(`[DB_SAVE] Explanation string length: ${explanationString.length}`);
+    
+    try {
+      const { data: saveData, error: dbError } = await supabase
+        .from('grammar_explanations')
+        .upsert({
+          grammar_item: grammarItem,
+          explanation: explanationString,
+          language: 'ko',
+          explanation_type: 'grammar',
+          created_by: 'ai'
+        }, {
+          onConflict: 'grammar_item,language'
+        });
+
+      if (dbError) {
+        console.error(`[DB_SAVE_ERROR] 구조화된 문법 설명 DB 저장 실패 for "${grammarItem}":`, dbError);
+        console.error(`[DB_SAVE_ERROR] 저장 시도한 데이터:`, { grammarItem, explanation: explanationData });
+      } else {
+        console.log(`[DB_SAVE_SUCCESS] 문법 설명 저장 성공 for "${grammarItem}":`, saveData);
+      }
+    } catch (saveError) {
+      console.error(`[DB_SAVE_CATCH] DB 저장 중 예외 발생 for "${grammarItem}":`, saveError);
+    }
+
+
 
     return NextResponse.json(explanationData);
 

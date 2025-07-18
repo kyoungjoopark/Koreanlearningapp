@@ -239,7 +239,7 @@ ${targetSentencesString}
     let aktuellenTemperature = 0.85;
     if (unitLevel && (unitLevel.includes('초급1') || unitLevel.toUpperCase().includes('A1'))) {
       aktuellenTemperature = 0.7; // A1 레벨일 경우 temperature를 0.6에서 0.7로 약간 더 올림
-      console.log(`A1 Level detected. Setting temperature to: ${aktuellenTemperature}`);
+      // A1 레벨 temperature 적용
     }
 
     const completion = await openai.chat.completions.create({

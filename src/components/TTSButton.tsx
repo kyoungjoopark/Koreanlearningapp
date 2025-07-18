@@ -57,7 +57,6 @@ export default function TTSButton({
         ].join(' | ')
         
         setDebugInfo(info)
-        console.log('[TTS] Debug Info:', info)
 
         if (!hasAPI) {
           console.error('[TTS] Speech Synthesis API not available')
@@ -76,7 +75,7 @@ export default function TTSButton({
             const AudioContext = window.AudioContext || window.webkitAudioContext
             if (AudioContext) {
               audioContextRef.current = new AudioContext()
-              console.log('[TTS] AudioContext state:', audioContextRef.current.state)
+              // AudioContext 초기화 완료
             }
           }
         } catch (error) {
@@ -88,7 +87,7 @@ export default function TTSButton({
         // 5. Voices 로딩 (모바일에서 지연 로딩)
         const loadVoices = () => {
           const availableVoices = window.speechSynthesis.getVoices()
-          console.log(`[TTS] Voices loaded: ${availableVoices.length}`)
+          // 음성 목록 로딩 완료
           
           if (availableVoices.length > 0) {
             setVoices(availableVoices)
@@ -96,7 +95,7 @@ export default function TTSButton({
             // 디바이스별 추천 voice 로깅
             const koVoices = availableVoices.filter(v => v.lang.startsWith('ko'))
             const enVoices = availableVoices.filter(v => v.lang.startsWith('en'))
-            console.log(`[TTS] Korean voices: ${koVoices.length}, English voices: ${enVoices.length}`)
+            // 한국어/영어 음성 확인 완료
           }
         }
 
@@ -147,7 +146,7 @@ export default function TTSButton({
     try {
       if (audioContextRef.current.state === 'suspended') {
         await audioContextRef.current.resume()
-        console.log('[TTS] AudioContext resumed')
+                  // AudioContext 재개됨
       }
     } catch (error) {
       console.error('[TTS] AudioContext activation failed:', error)
@@ -163,7 +162,7 @@ export default function TTSButton({
     cleaned = cleaned.replace(/\s+/g, ' ')
     cleaned = cleaned.trim()
     
-    console.log('[TTS] Text cleaned:', cleaned.substring(0, 50) + '...')
+          // 텍스트 정리 완료
     return cleaned
   }
 
@@ -200,7 +199,7 @@ export default function TTSButton({
       segments.push({ text: currentSegment.trim(), lang: currentLang })
     }
 
-    console.log('[TTS] Text segments:', segments)
+          // 텍스트 분할 완료
     
     // 세그먼트들을 순차적으로 재생
     for (let i = 0; i < segments.length; i++) {
@@ -353,9 +352,7 @@ export default function TTSButton({
   }
 
   const handleToggleSpeech = async () => {
-    console.log('[TTS] === TTS Button Clicked ===')
-    console.log('[TTS] Device Info:', { isMobile, isIOS, isAndroid })
-    console.log('[TTS] Support Status:', { isSupported, voicesCount: voices.length })
+            // TTS 버튼 클릭됨
     
     if (!isSupported) {
       alert('이 브라우저에서는 음성 기능을 지원하지 않습니다.')
