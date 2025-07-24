@@ -967,40 +967,171 @@ export default function MyPage() {
             </div>
 
             {/* 한국어 학습 진행 상황 카드 */}
-            <div className="bg-white rounded-xl shadow-lg p-8 h-full">
-              <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-3">
-                <BookCheck className="w-6 h-6 text-korean-600"/>
-                한국어 학습 진행 상황
+            <div className="bg-white rounded-xl shadow-lg p-6 h-full">
+              <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <BookCheck className="w-5 h-5 text-korean-600"/>
+                🎓 한국어 학습 진행 상황
               </h2>
-              {loadingProgress ? (
-                <p>학습 기록을 불러오는 중입니다...</p>
-              ) : progress.length > 0 ? (
-                <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
-                  {Object.entries(groupedProgress).map(([course, stages]) => (
-                    <div key={course}>
-                      <h3 className="text-xl font-semibold text-gray-700 border-b-2 border-korean-200 pb-2 mb-3">{course}</h3>
-                      <div className="space-y-4">
-                        {Object.entries(stages).map(([stage, lessons]) => (
-                          <div key={stage}>
-                            <h4 className="text-lg font-medium text-gray-600 mb-2">{stage}</h4>
-                            <ul className="space-y-1 pl-2">
-                              {lessons.map(lesson => (
-                                <li key={lesson.id} className="flex items-center gap-2">
-                                  <Link href={`/learn/${lesson.id}`} className="text-sm text-gray-700 hover:text-korean-600 hover:underline">
-                                    {lesson.주제 || lesson.제목}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ))}
+              
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+                
+                {/* 세종한국어 시리즈 */}
+                <div className="border rounded-lg p-3 bg-gray-50">
+                  <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center">
+                    📚 세종한국어 시리즈
+                  </h3>
+                  
+                  {/* 초급 */}
+                  <div className="mb-3">
+                    <h4 className="text-xs font-semibold text-green-700 mb-2">🟢 초급</h4>
+                    <div className="space-y-2 ml-2">
+                      <div className="bg-white p-2 rounded border border-green-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-800">세종한국어1A</span>
+                          <span className="text-xs text-gray-600">100% (10/10)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mb-2">
+                          <div className="bg-green-500 h-1 rounded-full" style={{width: '100%'}}></div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">✅ 단원1</span>
+                          <span className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">✅ 단원2</span>
+                          <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">+8개 완료</span>
+                        </div>
+                      </div>
+                      
+                      <div className="bg-white p-2 rounded border border-green-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-800">세종한국어2A</span>
+                          <span className="text-xs text-gray-600">50% (5/10)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mb-2">
+                          <div className="bg-yellow-500 h-1 rounded-full" style={{width: '50%'}}></div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">✅ 단원1</span>
+                          <span className="px-1 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs">🔄 단원3</span>
+                          <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">+3개 대기</span>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  </div>
+                  
+                  {/* 중급 */}
+                  <div className="mb-3">
+                    <h4 className="text-xs font-semibold text-yellow-700 mb-2">🟡 중급</h4>
+                    <div className="space-y-2 ml-2">
+                      <div className="bg-white p-2 rounded border border-yellow-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-800">세종한국어3A</span>
+                          <span className="text-xs text-gray-600">60% (6/10)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mb-2">
+                          <div className="bg-yellow-500 h-1 rounded-full" style={{width: '60%'}}></div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">✅ 여가생활</span>
+                          <span className="px-1 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs">🔄 건강관리</span>
+                          <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">+4개 대기</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 고급 */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-red-700 mb-2">🔴 고급</h4>
+                    <div className="space-y-2 ml-2">
+                      <div className="bg-white p-2 rounded border border-red-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-800">세종한국어4A</span>
+                          <span className="text-xs text-gray-600">0% (0/10)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mb-2">
+                          <div className="bg-gray-300 h-1 rounded-full" style={{width: '0%'}}></div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">⏸️ 단원1</span>
+                          <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">⏸️ 단원2</span>
+                          <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">+8개 대기</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <p className="text-gray-500 text-center py-8">아직 완료한 학습 기록이 없습니다.</p>
-              )}
+
+                {/* 세종학당 실용 한국어 시리즈 */}
+                <div className="border rounded-lg p-3 bg-gray-50">
+                  <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center">
+                    📚 실용 한국어 시리즈
+                  </h3>
+                  
+                  {/* 중급 */}
+                  <div className="mb-3">
+                    <h4 className="text-xs font-semibold text-yellow-700 mb-2">🟡 중급</h4>
+                    <div className="space-y-2 ml-2">
+                      <div className="bg-white p-2 rounded border border-yellow-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-800">실용 한국어3</span>
+                          <span className="text-xs text-gray-600">80% (8/10)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mb-2">
+                          <div className="bg-yellow-500 h-1 rounded-full" style={{width: '80%'}}></div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">✅ 집안일</span>
+                          <span className="px-1 py-0.5 bg-yellow-100 text-yellow-800 rounded text-xs">🔄 쇼핑</span>
+                          <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">+6개</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* 고급 */}
+                  <div>
+                    <h4 className="text-xs font-semibold text-red-700 mb-2">🔴 고급</h4>
+                    <div className="space-y-2 ml-2">
+                      <div className="bg-white p-2 rounded border border-red-200">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-gray-800">실용 한국어4</span>
+                          <span className="text-xs text-gray-600">0% (0/10)</span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-1 mb-2">
+                          <div className="bg-gray-300 h-1 rounded-full" style={{width: '0%'}}></div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">⏸️ 단원1</span>
+                          <span className="px-1 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">+9개 대기</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 한국어 입문 */}
+                <div className="border rounded-lg p-3 bg-gray-50">
+                  <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center">
+                    📚 한국어 입문
+                  </h3>
+                  
+                  <div className="space-y-2 ml-2">
+                    <div className="bg-white p-2 rounded border border-blue-200">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium text-gray-800">한글 기초 학습</span>
+                        <span className="text-xs text-gray-600">완료</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-1 mb-2">
+                        <div className="bg-blue-500 h-1 rounded-full" style={{width: '100%'}}></div>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">✅ 자음모음표</span>
+                        <span className="px-1 py-0.5 bg-green-100 text-green-800 rounded text-xs">✅ 기초연습</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+              </div>
             </div>
           </div>
           

@@ -273,10 +273,29 @@ export default function CoursesPage() {
               </Link>
             </div>
 
+            {/* 페이지 제목 및 세종학당 안내 */}
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-800 mb-6">한국어 학습 코스</h1>
+              
+              {/* 세종학당 안내 문구 */}
+              <div className="mb-8 p-4 bg-blue-50 rounded-lg border border-blue-100 max-w-4xl mx-auto">
+                <div className="space-y-2">
+                  <p className="text-blue-700 leading-relaxed text-center">
+                    세종학당의 교재를 바탕으로, 한국어 학습에 도움이 되는 설명과 AI 예문으로 구성되었습니다. 
+                    자세한 내용은 <a href="https://nuri.iksi.or.kr/front/main/main.do?language=ko" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline hover:text-blue-800">여기</a>를 참고하세요.
+                  </p>
+                  <p className="text-blue-600 leading-relaxed text-center text-sm">
+                    Based on King Sejong Institute textbooks, this content provides explanations and AI examples to help with Korean language learning. 
+                    For more details, please refer to <a href="https://nuri.iksi.or.kr/front/main/main.do?language=ko" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline hover:text-blue-700">here</a>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* 과목 또는 단계 컨테이너 */}
             <div className="bg-white p-6 md:p-10 rounded-2xl shadow-lg">
               {!selectedCourse ? (
-                // 1. 대표 과목 선택 (제목 제거됨)
+                // 1. 대표 과목 선택
                 <div>
                   <div className="max-w-4xl mx-auto">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -321,49 +340,48 @@ export default function CoursesPage() {
               ) : (
                 // 2. 단계 및 단원 선택
                 <div>
-                  {/* ... 기존 단계 및 단원 선택 로직 ... */}
-                   {/* 단계 선택 */}
-                   {selectedCourse && (
-                      <div>
-                        <button onClick={() => { setSelectedCourse(null); setSelectedStage(null); }} className="inline-flex items-center text-gray-600 hover:text-gray-800 transition-colors group mb-8">
-                            <ArrowLeft size={20} className="mr-2 transition-transform group-hover:-translate-x-1" />
-                            과목 선택으로 돌아가기
-                        </button>
-                        
-                        <div className="text-center mb-10">
-                          <h1 className="text-3xl font-bold text-gray-800">{selectedCourse}</h1>
-                          <p className="text-gray-500 mt-2">학습할 단계를 선택해주세요.</p>
-                        </div>
-
-                        {unitsLoading ? (
-                          <div className="text-center text-gray-500">로딩 중...</div>
-                        ) : stages.length > 0 ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                            {stages.map((stage) => (
-                              <button
-                                key={stage}
-                                onClick={() => handleStageSelect(stage)}
-                                className={`p-4 rounded-lg text-center font-semibold transition-colors ${
-                                  selectedStage === stage
-                                    ? 'bg-korean-500 text-white shadow-md'
-                                    : 'bg-gray-100 hover:bg-korean-100 text-gray-700'
-                                }`}
-                              >
-                                {stage}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center text-gray-500 py-8">선택한 과목에 대한 학습 단계 정보가 없습니다.</div>
-                        )}
+                  {/* 단계 선택 */}
+                  {selectedCourse && (
+                    <div>
+                      <button onClick={() => { setSelectedCourse(null); setSelectedStage(null); }} className="inline-flex items-center text-gray-600 hover:text-gray-800 transition-colors group mb-8">
+                        <ArrowLeft size={20} className="mr-2 transition-transform group-hover:-translate-x-1" />
+                        과목 선택으로 돌아가기
+                      </button>
+                      
+                      <div className="text-center mb-10">
+                        <h1 className="text-3xl font-bold text-gray-800">{selectedCourse}</h1>
+                        <p className="text-gray-500 mt-2">학습할 단계를 선택해주세요.</p>
                       </div>
-                   )}
+
+                      {unitsLoading ? (
+                        <div className="text-center text-gray-500">로딩 중...</div>
+                      ) : stages.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                          {stages.map((stage) => (
+                            <button
+                              key={stage}
+                              onClick={() => handleStageSelect(stage)}
+                              className={`p-4 rounded-lg text-center font-semibold transition-colors ${
+                                selectedStage === stage
+                                  ? 'bg-korean-500 text-white shadow-md'
+                                  : 'bg-gray-100 hover:bg-korean-100 text-gray-700'
+                              }`}
+                            >
+                              {stage}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-500 py-8">선택한 과목에 대한 학습 단계 정보가 없습니다.</div>
+                      )}
+                    </div>
+                  )}
 
                   {/* 단원 목록 */}
                   {selectedStage && (
                     <div className="mt-10 pt-8 border-t border-gray-200">
-                       <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">{selectedStage} 단원 목록</h2>
-                       {filteredUnits.length > 0 ? (
+                      <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">{selectedStage} 단원 목록</h2>
+                      {filteredUnits.length > 0 ? (
                         <div className="space-y-3">
                           {filteredUnits
                             .sort((a, b) => a.id - b.id)
@@ -387,9 +405,9 @@ export default function CoursesPage() {
                               );
                           })}
                         </div>
-                       ) : (
+                      ) : (
                         <div className="text-center text-gray-500 py-8">이 단계에는 아직 학습할 단원이 없습니다.</div>
-                       )}
+                      )}
                     </div>
                   )}
                 </div>
